@@ -1,0 +1,286 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #F7F5F0;
+  --surface: #FFFFFF;
+  --border: rgba(0,0,0,0.1);
+  --text: #1A1916;
+  --muted: #888780;
+  --accent: #1A1916;
+  --success-bg: #EAF3DE;
+  --success-text: #3B6D11;
+  --warning-bg: #FAEEDA;
+  --warning-text: #854F0B;
+  --danger-bg: #FCEBEB;
+  --danger-text: #A32D2D;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+.logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 36px;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--muted);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.game-code {
+  font-family: 'DM Serif Display', serif;
+  font-size: 52px;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.phase-tag {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+input[type=text], input {
+  width: 100%;
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin-bottom: 8px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus { border-color: var(--text); }
+
+button { font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; }
+
+.btn-primary {
+  width: 100%;
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  border-radius: 12px;
+  padding: 13px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-secondary {
+  width: 100%;
+  background: transparent;
+  color: var(--text);
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 8px;
+}
+.btn-secondary:hover { background: rgba(0,0,0,0.04); }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 1.25rem 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 0.5px;
+  background: var(--border);
+}
+
+.error { color: #A32D2D; font-size: 13px; margin-top: 4px; }
+
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 0.5px solid var(--border);
+  font-size: 15px;
+}
+.player-row:last-child { border-bottom: none; }
+.player-row span:nth-child(2) { flex: 1; }
+
+.badge-success {
+  display: inline-block;
+  background: var(--success-bg);
+  color: var(--success-text);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.badge-warning {
+  display: inline-block;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.badge-waiting {
+  display: inline-block;
+  background: rgba(0,0,0,0.06);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.badge-neutral {
+  display: inline-block;
+  background: rgba(0,0,0,0.06);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.progress-bar {
+  height: 3px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 2px;
+  margin-bottom: 1.5rem;
+}
+.progress-fill {
+  height: 3px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: width 0.4s;
+}
+
+.highlight-card {
+  border-radius: 16px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+.highlight-card.describer { background: #1A1916; color: #F7F5F0; }
+.highlight-card.describer .highlight-label { color: #F7F5F0; }
+.highlight-card.describer p { color: rgba(247,245,240,0.7); }
+.highlight-card.owner { background: var(--warning-bg); }
+.highlight-card.owner .highlight-label { color: var(--warning-text); }
+.highlight-card.neutral { background: var(--surface); border: 0.5px solid var(--border); }
+.highlight-label {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.word-display {
+  font-family: 'DM Serif Display', serif;
+  font-size: 36px;
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--surface);
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+  border: 0.5px solid var(--border);
+  letter-spacing: 0.01em;
+}
+
+.player-chip {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.player-chip:hover { border-color: var(--text); }
+.player-chip.selected {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+.reveal-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.reveal-label { font-size: 13px; color: var(--muted); }
+
+.score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.score-row:last-child { border-bottom: none; }
+.rank {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  width: 24px;
+  color: var(--muted);
+}
+.score-num {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.muted-note {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 1rem;
+  line-height: 1.6;
+}

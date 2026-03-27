@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Word Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #242424;
+  --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+  --text: #f0ede8; --muted: rgba(240,237,232,0.45);
+  --accent: #e8d5a3; --accent2: #c9b07a;
+  --danger: #e07060; --success: #7ec8a0; --warn: #e8b84b;
+  --radius: 16px; --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; }
+body { display: flex; flex-direction: column; min-height: 100vh; }
+.screen { display: none; flex-direction: column; min-height: 100vh; padding: 24px 20px 40px; max-width: 480px; margin: 0 auto; width: 100%; }
+.screen.active { display: flex; }
+h1 { font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
+h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 600; }
+p { color: var(--muted); font-size: 15px; line-height: 1.6; }
+.logo { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; margin-bottom: 40px; }
+.btn { display: block; width: 100%; padding: 15px; border-radius: var(--radius-sm); font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.02em; border: none; cursor: pointer; transition: transform 0.12s, opacity 0.12s; text-align: center; margin-top: 10px; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #1a1600; }
+.btn-ghost { background: transparent; color: var(--text); border: 0.5px solid var(--border2); }
+.btn-danger { background: transparent; color: var(--danger); border: 0.5px solid rgba(224,112,96,0.3); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+input[type=text] { width: 100%; background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 14px 16px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; outline: none; transition: border-color 0.15s; margin-bottom: 10px; }
+input[type=text]:focus { border-color: var(--accent); }
+input[type=text]::placeholder { color: var(--muted); }
+.label { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; display: block; }
+.card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
+.badge-accent { background: rgba(232,213,163,0.15); color: var(--accent); }
+.badge-success { background: rgba(126,200,160,0.15); color: var(--success); }
+.badge-danger { background: rgba(224,112,96,0.15); color: var(--danger); }
+.badge-muted { background: var(--surface2); color: var(--muted); }
+.avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--surface2); border: 0.5px solid var(--border2); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--accent); flex-shrink: 0; }
+.word-big { font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -0.02em; text-align: center; color: var(--accent); line-height: 1.1; padding: 28px 0; }
+.timer-wrap { display: flex; justify-content: center; margin: 20px 0; }
+.timer-rel { position: relative; width: 140px; height: 140px; }
+.timer-svg { transform: rotate(-90deg); position: absolute; top: 0; left: 0; }
+.timer-num-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.timer-num { font-family: 'Syne', sans-serif; font-size: 44px; font-weight: 800; color: var(--text); }
+.guess-chip { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; border-radius: 999px; border: 0.5px solid var(--border2); background: var(--surface); color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; margin: 5px; transition: all 0.12s; }
+.guess-chip.selected { background: rgba(232,213,163,0.15); border-color: var(--accent); color: var(--accent); }
+.spacer { flex: 1; }
+.phase-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; margin-right: 8px; flex-shrink: 0; }
+.phase-label { font-size: 12px; font-weight: 500; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; margin-bottom: 20px; }
+.sit-box { background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 32px 20px; text-align: center; margin: 20px 0; }
+.lobby-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.lobby-chip { background: var(--surface2); border: 0.5px solid var(--border); border-radius: 999px; padding: 7px 14px; font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.lobby-dot { width: 7px; height: 7px; border-radius: 50%; }
+.code-display { font-family: 'Syne', sans-serif; font-size: 52px; font-weight: 800; letter-spacing: 0.2em; color: var(--accent); text-align: center; padding: 12px 0; }
+.error-msg { color: var(--danger); font-size: 13px; margin-top: 4px; min-height: 18px; }
+.progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.progress-track { flex: 1; height: 3px; background: var(--surface2); border-radius: 2px; }
+.progress-fill { height: 3px; background: var(--accent); border-radius: 2px; transition: width 0.4s; }
+.waiting-anim { display: flex; gap: 6px; justify-content: center; margin: 20px 0; }
+.wd { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: 0.3; animation: pulse 1.2s ease-in-out infinite; }
+.wd:nth-child(2) { animation-delay: 0.2s; } .wd:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+.player-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.player-row:last-child { border-bottom: none; }
+.score-num { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: var(--accent); }
+.reveal-box { border-radius: var(--radius); padding: 16px 20px; text-align: center; margin: 10px 0; }
+.reveal-win { background: rgba(126,200,160,0.1); border: 0.5px solid rgba(126,200,160,0.3); }
+.reveal-lose { background: rgba(224,112,96,0.08); border: 0.5px solid rgba(224,112,96,0.2); }
+.word-entry-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.word-entry-row input { margin-bottom: 0; flex: 1; }
+.widx { font-family: 'Syne', sans-serif; font-weight: 700; color: var(--muted); font-size: 13px; min-width: 18px; }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="s-home" class="screen active">
+  <div class="logo">Wordgame</div>
+  <h1 style="margin-bottom:12px;">Getting to know each other, one weird word at a time.</h1>
+  <p style="margin-bottom:32px;">A 30-seconds-style icebreaker for small teams.</p>
+  <div class="spacer"></div>
+  <button class="btn btn-primary" onclick="showScreen('s-create')">Create a game</button>
+  <button class="btn btn-ghost" onclick="showScreen('s-join')">Join with a code</button>
+</div>
+
+<!-- CREATE -->
+<div id="s-create" class="screen">
+  <div class="logo">Wordgame</div>
+  <div class="phase-label"><span class="phase-dot"></span>New game</div>
+  <h2 style="margin-bottom:12px;">Your name</h2>
+  <p style="margin-bottom:24px;">You'll be the host and can start the game once everyone's ready.</p>
+  <span class="label">Your name</span>
+  <input type="text" id="create-name" placeholder="e.g. Sarah" maxlength="20" />
+  <p id="create-error" class="error-msg"></p>
+  <div class="spacer"></div>
+  <button class="btn btn-primary" onclick="createGame()">Create game</button>
+  <button class="btn btn-ghost" onclick="showScreen('s-home')">Back</button>
+</div>
+
+<!-- JOIN -->
+<div id="s-join" class="screen">
+  <div class="logo">Wordgame</div>
+  <div class="phase-label"><span class="phase-dot"></span>Join</div>
+  <h2 style="margin-bottom:12px;">Enter the code</h2>
+  <p style="margin-bottom:24px;">Ask the host for the 4-letter game code.</p>
+  <span class="label">Game code</span>
+  <input type="text" id="join-code" placeholder="ABCD" maxlength="4" oninput="this.value=this.value.toUpperCase()" style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;" />
+  <span class="label">Your name</span>
+  <input type="text" id="join-name" placeholder="e.g. Marco" maxlength="20" />
+  <p id="join-error" class="error-msg"></p>
+  <div class="spacer"></div>
+  <button class="btn btn-primary" onclick="joinGame()">Join game</button>
+  <button class="btn btn-ghost" onclick="showScreen('s-home')">Back</button>
+</div>
+
+<!-- LOBBY HOST -->
+<div id="s-lobby-host" class="screen">
+  <div class="logo">Wordgame</div>
+  <div class="phase-label"><span class="phase-dot"></span>Waiting for players</div>
+  <h2 style="margin-bottom:8px;">Share this code</h2>
+  <div class="code-display" id="lobby-code-display">----</div>
+  <p style="margin-bottom:8px;font-size:13px;">Players who have joined and submitted words:</p>
+  <div class="card" style="padding:14px 16px;"><div id="lobby-host-players" class="lobby-grid"></div></div>
+  <p style="font-size:13px;">Everyone needs at least 2 words before you can start.</p>
+  <div class="spacer"></div>
+  <button class="btn btn-primary" id="start-btn" onclick="startGame()" disabled>Start game</button>
+  <button class="btn btn-danger" onclick="cancelGame()">Cancel</button>
+</div>
+
+<!-- LOBBY PLAYER (word submission) -->
+<div id="s-lobby-player" class="screen">
+  <div class="logo">Wordgame</div>
+  <div class="phase-label"><span class="phase-dot"></span>Submit your words</div>
+  <h2 style="margin-bottom:12px;">Your words</h2>
+  <p style="margin-bottom:24px;">Choose 2–3 words that describe you. Fun, weird, and unexpected is encouraged!</p>
+  <div class="word-entry-row"><span class="widx">1</span><input type="text" id="word-1" placeholder="e.g. Origami" maxlength="30" /></div>
+  <div class="word-entry-row"><span class="widx">2</span><input type="text" id="word-2" placeholder="e.g. Insomniac" maxlength="30" /></div>
+  <div class="word-entry-row"><span class="widx">3</span><input type="text" id="word-3" placeholder="Optional third word" maxlength="30" /></div>
+  <p id="words-error" class="error-msg"></p>
+  <div id="words-done" style="display:none;">
+    <p style="color:var(--success);font-size:13px;margin-bottom:8px;">Words submitted! Waiting for everyone...</p>
+    <div class="waiting-anim"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div>
+  </div>
+  <div class="card" style="margin-top:16px;padding:14px 16px;">
+    <p style="font-size:12px;color:var(--muted);margin-bottom:0;">Players ready:</p>
+    <div id="player-ready-list" class="lobby-grid"></div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn btn-primary" id="submit-words-btn" onclick="submitWords()">Submit words</button>
+</div>
+
+<!-- ROUND INTRO -->
+<div id="s-round-intro" class="screen">
+  <div class="logo">Wordgame</div>
+  <div class="phase-label"><span class="phase-dot"></span>Round <span id="ri-round"></span> of <span id="ri-total"></span></div>
+  <div class="progress-row">
+    <div class="progress-track"><div class="progress-fill" id="ri-bar"></div></div>
+    <span style="font-size:12px;color:var(--muted);" id="ri-pct"></span>
+  </div>
+  <div id="ri-content"></div>
+  <div class="spacer"></div>
+  <button class="btn btn-primary" id="ri-action-btn">Ready</button>
+</div>
+
+<!-- DESCRIBE (describer only) -->
+<div id="s-describe" class="screen">
+  <div class="phase-label"><span class="phase-dot"></span>Describe the word</div>
+  <div class="word-big" id="desc-word"></div>
+  <p style="text-align:center;margin-bottom:16px;">No saying the word itself, no spelling it out!</p>
+  <div class="timer-wrap">
+    <div class="timer-rel">
+      <svg class="timer-svg" width="140" height="140" viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="7"/>
+        <circle cx="70" cy="70" r="60" fill="none" stroke="var(--accent)" stroke-width="7" stroke-dasharray="376.99" stroke-dashoffset="0" id="desc-arc" stroke-linecap="round"/>
+      </svg>
+      <div class="timer-num-wrap"><span class="timer-num" id="desc-timer">30</span></div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn btn-primary" onclick="wordGuessed()">Word guessed!</button>
+  <button class="btn btn-ghost" onclick="skipWord()">Skip this word</button>
+  <button class="btn btn-ghost" onclick="timeUp()">Time's up</button>
+</div>
+
+<!-- WATCHING (non-describer, non-owner) -->
+<div id="s-watching" class="screen">
+  <div class="phase-label"><span class="phase-dot"></span>Listen carefully</div>
+  <div class="sit-box">
+    <h3 style="margin-bottom:12px;" id="watch-name"></h3>
+    <p>is describing a word. Listen and try to guess it!</p>
+    <div class="waiting-anim"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div>
+  </div>
+  <div class="timer-wrap">
+    <div class="timer-rel">
+      <svg class="timer-svg" width="140" height="140" viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="7"/>
+        <circle cx="70" cy="70" r="60" fill="none" stroke="var(--accent)" stroke-width="7" stroke-dasharray="376.99" stroke-dashoffset="0" id="watch-arc" stroke-linecap="round"/>
+      </svg>
+      <div class="timer-num-wrap"><span class="timer-num" id="watch-timer">30</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIT OUT (owner during describing) -->
+<div id="s-sitout" class="screen">
+  <div class="phase-label"><span class="phase-dot"></span>Your word is up</div>
+  <div class="sit-box">
+    <h2 style="margin-bottom:12px;">Sit this one out</h2>
+    <p style="margin-bottom:24px;">One of your words is being described. Keep a straight face!</p>
+    <div class="waiting-anim"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div>
+  </div>
+  <div class="spacer"></div>
+  <p style="font-size:13px;color:var(--muted);text-align:center;">You'll get to elaborate once the round is done.</p>
+</div>
+
+<!-- GUESS OWNER -->
+<div id="s-guess" class="screen">
+  <div class="phase-label"><span class="phase-dot"></span>Whose word is it?</div>
+  <div class="word-big" id="guess-word"></div>
+  <p style="margin-bottom:20px;" id="guess-instr"></p>
+  <div id="guess-chips" style="display:flex;flex-wrap:wrap;justify-content:center;margin-bottom:20px;"></div>
+  <p id="guess-error" class="error-msg"></p>
+  <div class="spacer"></div>
+  <button class="btn btn-primary" id="guess-confirm" onclick="confirmGuess()" disabled>Confirm guess</button>
+</div>
+
+<!-- REVEAL -->
+<div id="s-reveal" class="screen">
+  <div class="phase-label"><span class="phase-dot"></span>Reveal</div>
+  <div class="word-big" id="rev-word"></div>
+  <div id="rev-results"></div>
+  <div class="card" style="text-align:center;margin-top:8px;">
+    <p style="font-size:13px;margin-bottom:6px;">This word belongs to</p>
+    <h2 id="rev-owner" style="color:var(--accent);"></h2>
+  </div>
+  <div class="spacer"></div>
+  <div id="rev-host-ctrl" style="display:none;">
+    <button class="btn btn-primary" onclick="hostStartElaborate()">Start 1-min elaboration timer</button>
+    <button class="btn btn-ghost" onclick="hostSkipElaborate()">Skip elaboration</button>
+  </div>
+  <div id="rev-player-wait" style="display:none;text-align:center;">
+    <p style="font-size:13px;color:var(--muted);">Waiting for host...</p>
+    <div class="waiting-anim"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div>
+  </div>
+</div>
+
+<!-- ELABORATE -->
+<div id="s-elaborate" class="screen">
+  <div class="phase-label"><span class="phase-dot"></span>Elaboration</div>
+  <div class="word-big" id="elab-word"></div>
+  <p style="text-align:center;margin-bottom:20px;" id="elab-name"></p>
+  <div class="timer-wrap">
+    <div class="timer-rel">
+      <svg class="timer-svg" width="140" height="140" viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="7"/>
+        <circle cx="70" cy="70" r="60" fill="none" stroke="var(--accent)" stroke-width="7" stroke-dasharray="376.99" stroke-dashoffset="0" id="elab-arc" stroke-linecap="round"/>
+      </svg>
+      <div class="timer-num-wrap"><span class="timer-num" id="elab-timer">60</span></div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div id="elab-host-btn" style="display:none;">
+    <button class="btn btn-primary" onclick="hostNextRound()">Next round →</button>
+  </div>
+  <div id="elab-player-wait" style="display:none;text-align:center;">
+    <p style="font-size:13px;color:var(--muted);">Host advances to next round...</p>
+  </div>
+</div>
+
+<!-- SCORES -->
+<div id="s-scores" class="screen">
+  <div class="logo">Wordgame</div>
+  <div class="phase-label"><span class="phase-dot"></span>Game over</div>
+  <h1 style="margin-bottom:24px;">Final scores</h1>
+  <div class="card" id="scores-list"></div>
+  <div class="spacer"></div>
+  <button class="btn btn-ghost" onclick="location.reload()" style="margin-top:24px;">Play again</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, get, update, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// ── FIREBASE CONFIG — replace these values after setting up Firebase ──
+const firebaseConfig = {
+  apiKey: "REPLACE_WITH_YOUR_API_KEY",
+  authDomain: "REPLACE_WITH_YOUR_AUTH_DOMAIN",
+  databaseURL: "REPLACE_WITH_YOUR_DATABASE_URL",
+  projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
+  storageBucket: "REPLACE_WITH_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
+  appId: "REPLACE_WITH_YOUR_APP_ID"
+};
+// ─────────────────────────────────────────────────────────────────────
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ── LOCAL STATE ───────────────────────────────────────────────────────
+let myId = '', myName = '', myCode = '', isHost = false;
+let gameUnsub = null, localTimer = null;
+let lastPhaseKey = '', selectedGuess = null;
+
+// ── UTILS ─────────────────────────────────────────────────────────────
+window.showScreen = id => {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+};
+
+const genCode = () => Array.from({length:4}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random()*23)]).join('');
+const genId = () => Math.random().toString(36).slice(2,10);
+const shuffle = a => { const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; };
+
+function clearTimer() { if(localTimer){clearInterval(localTimer);localTimer=null;} }
+
+function runTimer(numId, arcId, total, onEnd) {
+  clearTimer();
+  let t = total;
+  const circ = 376.99;
+  const tick = () => {
+    const el = document.getElementById(numId), arc = document.getElementById(arcId);
+    if(el) el.textContent = t;
+    if(arc) arc.style.strokeDashoffset = circ * (1 - t/total);
+  };
+  tick();
+  localTimer = setInterval(() => { t--; tick(); if(t<=0){ clearTimer(); onEnd&&onEnd(); } }, 1000);
+}
+
+// ── CREATE GAME ───────────────────────────────────────────────────────
+window.createGame = async () => {
+  const name = document.getElementById('create-name').value.trim();
+  if(!name){ document.getElementById('create-error').textContent='Enter your name.'; return; }
+  myId = genId(); myName = name; myCode = genCode(); isHost = true;
+  await set(ref(db,`games/${myCode}`), {
+    host: myId, phase: 'lobby',
+    players: { [myId]: {name, wordsSubmitted:false, words:{}} },
+    scores: { [myId]: 0 }, currentRound: 0, rounds: []
+  });
+  document.getElementById('lobby-code-display').textContent = myCode;
+  showScreen('s-lobby-host');
+  listenGame();
+};
+
+// ── JOIN GAME ─────────────────────────────────────────────────────────
+window.joinGame = async () => {
+  const code = document.getElementById('join-code').value.trim().toUpperCase();
+  const name = document.getElementById('join-name').value.trim();
+  if(!code||code.length!==4){ document.getElementById('join-error').textContent='Enter a 4-letter code.'; return; }
+  if(!name){ document.getElementById('join-error').textContent='Enter your name.'; return; }
+  const snap = await get(ref(db,`games/${code}`));
+  if(!snap.exists()){ document.getElementById('join-error').textContent='Game not found.'; return; }
+  if(snap.val().phase!=='lobby'){ document.getElementById('join-error').textContent='Game already started.'; return; }
+  myId=genId(); myName=name; myCode=code; isHost=false;
+  const upd={};
+  upd[`games/${code}/players/${myId}`]={name,wordsSubmitted:false,words:{}};
+  upd[`games/${code}/scores/${myId}`]=0;
+  await update(ref(db),upd);
+  showScreen('s-lobby-player');
+  listenGame();
+};
+
+// ── SUBMIT WORDS ───────────────────────────────────────────────────────
+window.submitWords = async () => {
+  const w1=document.getElementById('word-1').value.trim();
+  const w2=document.getElementById('word-2').value.trim();
+  const w3=document.getElementById('word-3').value.trim();
+  if(!w1||!w2){ document.getElementById('words-error').textContent='At least 2 words required.'; return; }
+  document.getElementById('words-error').textContent='';
+  const words = [w1,w2,w3].filter(Boolean).reduce((a,w,i)=>{a[i]=w;return a;},{});
+  await update(ref(db,`games/${myCode}/players/${myId}`),{words,wordsSubmitted:true});
+  document.getElementById('submit-words-btn').disabled=true;
+  document.getElementById('words-done').style.display='block';
+};
+
+// ── START GAME (host) ──────────────────────────────────────────────────
+window.startGame = async () => {
+  const snap = await get(ref(db,`games/${myCode}`));
+  const data = snap.val();
+  const players = data.players;
+  let allWords = [];
+  Object.entries(players).forEach(([pid,p]) => {
+    Object.values(p.words||{}).forEach(w => { if(w) allWords.push({word:w,ownerId:pid,ownerName:p.name}); });
+  });
+  allWords = shuffle(allWords);
+  const plist = Object.entries(players).map(([id,p])=>({id,name:p.name}));
+  const rounds = allWords.map((w,i) => {
+    const nonOwners = plist.filter(p=>p.id!==w.ownerId);
+    const desc = nonOwners[i % nonOwners.length];
+    return { word:w.word, ownerId:w.ownerId, ownerName:w.ownerName, describerId:desc.id, describerName:desc.name, guessedWord:false, guesserName:null, guessCorrect:false };
+  });
+  await update(ref(db,`games/${myCode}`),{phase:'round-intro',currentRound:0,rounds});
+};
+
+window.cancelGame = async () => {
+  if(confirm('Cancel game?')){ await remove(ref(db,`games/${myCode}`)); showScreen('s-home'); }
+};
+
+// ── GAME LISTENER ──────────────────────────────────────────────────────
+function listenGame() {
+  if(gameUnsub) gameUnsub();
+  gameUnsub = onValue(ref(db,`games/${myCode}`), snap => {
+    if(!snap.exists()){ showScreen('s-home'); return; }
+    handleState(snap.val());
+  });
+}
+
+function phaseKey(state) {
+  return `${state.phase}:${state.currentRound}`;
+}
+
+function handleState(state) {
+  const key = phaseKey(state);
+  const players = state.players||{};
+  const round = state.rounds?.[state.currentRound];
+
+  // Always update lobby UI even without phase change
+  if(state.phase==='lobby') { renderLobby(players,state); return; }
+
+  const changed = key !== lastPhaseKey;
+  if(changed) { clearTimer(); lastPhaseKey=key; }
+
+  if(state.phase==='round-intro' && changed) return renderRoundIntro(state,round);
+  if(state.phase==='describing') { if(changed) renderDescribing(state,round); return; }
+  if(state.phase==='guessing' && changed) return renderGuessing(state,round,players);
+  if(state.phase==='reveal' && changed) return renderReveal(state,round);
+  if(state.phase==='elaborate') { if(changed) renderElaborate(state,round); return; }
+  if(state.phase==='done' && changed) return renderScores(state);
+}
+
+// ── LOBBY ──────────────────────────────────────────────────────────────
+function renderLobby(players,state) {
+  const entries = Object.values(players);
+  const allReady = entries.length>=2 && entries.every(p=>p.wordsSubmitted);
+  if(isHost) {
+    document.getElementById('lobby-host-players').innerHTML = entries.map(p=>`
+      <div class="lobby-chip"><div class="lobby-dot" style="background:${p.wordsSubmitted?'var(--success)':'var(--muted)'}"></div>${p.name}</div>
+    `).join('');
+    const btn=document.getElementById('start-btn');
+    btn.disabled=!allReady;
+    btn.textContent=allReady?'Start game':`Waiting for words (${entries.filter(p=>p.wordsSubmitted).length}/${entries.length})`;
+  } else {
+    const list=document.getElementById('player-ready-list');
+    if(list) list.innerHTML=entries.map(p=>`
+      <div class="lobby-chip"><div class="lobby-dot" style="background:${p.wordsSubmitted?'var(--success)':'var(--muted)'}"></div>${p.name}</div>
+    `).join('');
+  }
+}
+
+// ── ROUND INTRO ────────────────────────────────────────────────────────
+function renderRoundIntro(state,round) {
+  const total=state.rounds.length, cur=state.currentRound+1;
+  document.getElementById('ri-round').textContent=cur;
+  document.getElementById('ri-total').textContent=total;
+  document.getElementById('ri-bar').style.width=((cur-1)/total*100)+'%';
+  document.getElementById('ri-pct').textContent=Math.round((cur-1)/total*100)+'%';
+
+  const iDesc=round.describerId===myId, isOwner=round.ownerId===myId;
+  const box=document.getElementById('ri-content'), btn=document.getElementById('ri-action-btn');
+  btn.onclick=null;
+
+  if(iDesc) {
+    box.innerHTML=`<div class="card" style="text-align:center;padding:28px 20px;"><span class="badge badge-accent" style="margin-bottom:16px;">Your turn</span><h2 style="margin-bottom:12px;">You're describing!</h2><p>You'll see the word. Get others to say it in 30 seconds — no spelling or saying the word directly.</p></div>`;
+    btn.textContent='See the word →';
+    btn.onclick=()=>describerSeesWord(state,round);
+  } else if(isOwner) {
+    box.innerHTML=`<div class="card" style="text-align:center;padding:28px 20px;"><span class="badge badge-muted" style="margin-bottom:16px;">Sit out</span><h2 style="margin-bottom:12px;">Your word is up</h2><p><strong>${round.describerName}</strong> is describing one of your words. Don't react!</p></div>`;
+    btn.textContent='Got it, I'll stay quiet';
+    btn.onclick=()=>showScreen('s-sitout');
+  } else {
+    box.innerHTML=`<div class="card" style="text-align:center;padding:28px 20px;"><span class="badge badge-muted" style="margin-bottom:16px;">Get ready</span><h2 style="margin-bottom:12px;">${round.describerName} describes</h2><p>Listen carefully — then guess the word AND whose word it is.</p></div>`;
+    btn.textContent='Ready';
+    btn.onclick=()=>showScreen('s-watching');
+  }
+  showScreen('s-round-intro');
+}
+
+// ── DESCRIBING ─────────────────────────────────────────────────────────
+async function describerSeesWord(state,round) {
+  document.getElementById('desc-word').textContent=round.word;
+  showScreen('s-describe');
+  await update(ref(db,`games/${myCode}`),{phase:'describing',timerStart:Date.now()});
+  runTimer('desc-timer','desc-arc',30,()=>timeUp());
+}
+
+function renderDescribing(state,round) {
+  const amDesc=round.describerId===myId, amOwner=round.ownerId===myId;
+  const elapsed=state.timerStart?Math.floor((Date.now()-state.timerStart)/1000):0;
+  const rem=Math.max(0,30-elapsed);
+  if(amDesc) {
+    document.getElementById('desc-word').textContent=round.word;
+    showScreen('s-describe');
+    runTimer('desc-timer','desc-arc',rem,()=>timeUp());
+  } else if(amOwner) {
+    showScreen('s-sitout');
+  } else {
+    document.getElementById('watch-name').textContent=round.describerName;
+    showScreen('s-watching');
+    runTimer('watch-timer','watch-arc',rem,()=>{});
+  }
+}
+
+window.wordGuessed = async () => {
+  clearTimer();
+  const snap=await get(ref(db,`games/${myCode}`));
+  const ri=snap.val().currentRound;
+  await update(ref(db),{[`games/${myCode}/rounds/${ri}/guessedWord`]:true,[`games/${myCode}/phase`]:'guessing'});
+};
+
+window.skipWord = async () => {
+  clearTimer();
+  const snap=await get(ref(db,`games/${myCode}`));
+  const state=snap.val(); const ri=state.currentRound;
+  await update(ref(db),{[`games/${myCode}/rounds/${ri}/guessedWord`]:false,[`games/${myCode}/phase`]:'guessing'});
+};
+
+window.timeUp = async () => {
+  clearTimer();
+  const snap=await get(ref(db,`games/${myCode}`));
+  const state=snap.val(); const ri=state.currentRound;
+  if(state.rounds[ri].describerId===myId) {
+    await update(ref(db),{[`games/${myCode}/rounds/${ri}/guessedWord`]:false,[`games/${myCode}/phase`]:'guessing'});
+  }
+};
+
+// ── GUESSING ───────────────────────────────────────────────────────────
+function renderGuessing(state,round,players) {
+  const amOwner=round.ownerId===myId;
+  selectedGuess=null;
+  document.getElementById('guess-word').textContent=round.word;
+  document.getElementById('guess-confirm').disabled=true;
+  document.getElementById('guess-error').textContent='';
+
+  if(amOwner) {
+    document.getElementById('guess-instr').textContent='Your word is being guessed — sit tight!';
+    document.getElementById('guess-chips').innerHTML='';
+    document.getElementById('guess-confirm').style.display='none';
+  } else {
+    document.getElementById('guess-instr').textContent=`Whose word is this? (${round.ownerName} sits out)`;
+    document.getElementById('guess-confirm').style.display='block';
+    const eligible=Object.entries(players).filter(([id])=>id!==round.ownerId);
+    document.getElementById('guess-chips').innerHTML=eligible.map(([id,p])=>`
+      <button class="guess-chip" id="gc-${id}" onclick="window._selectGuess('${id}','${p.name}')">${p.name}</button>
+    `).join('');
+  }
+  showScreen('s-guess');
+}
+
+window._selectGuess = (id,name) => {
+  selectedGuess={id,name};
+  document.querySelectorAll('.guess-chip').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('gc-'+id)?.classList.add('selected');
+  document.getElementById('guess-confirm').disabled=false;
+};
+
+window.confirmGuess = async () => {
+  if(!selectedGuess) return;
+  const snap=await get(ref(db,`games/${myCode}`));
+  const state=snap.val(), ri=state.currentRound, round=state.rounds[ri];
+  const correct=selectedGuess.id===round.ownerId;
+  const upd={};
+  upd[`games/${myCode}/rounds/${ri}/guesserName`]=myName;
+  upd[`games/${myCode}/rounds/${ri}/guessCorrect`]=correct;
+  if(correct&&round.guessedWord) upd[`games/${myCode}/scores/${myId}`]=(state.scores[myId]||0)+1;
+  upd[`games/${myCode}/phase`]='reveal';
+  await update(ref(db),upd);
+};
+
+// ── REVEAL ─────────────────────────────────────────────────────────────
+function renderReveal(state,round) {
+  document.getElementById('rev-word').textContent=round.word;
+  document.getElementById('rev-owner').textContent=round.ownerName;
+  let html='';
+  if(round.guessedWord) html+=`<div class="reveal-box reveal-win"><span class="badge badge-success">Word guessed correctly</span></div>`;
+  else html+=`<div class="reveal-box reveal-lose"><span class="badge badge-muted">Word not guessed</span></div>`;
+  if(round.guesserName) {
+    if(round.guessCorrect) html+=`<div class="reveal-box reveal-win"><span class="badge badge-success">${round.guesserName} identified the owner — +1 point</span></div>`;
+    else html+=`<div class="reveal-box reveal-lose"><span class="badge badge-danger">${round.guesserName} guessed wrong</span></div>`;
+  }
+  document.getElementById('rev-results').innerHTML=html;
+  document.getElementById('rev-host-ctrl').style.display=isHost?'block':'none';
+  document.getElementById('rev-player-wait').style.display=isHost?'none':'block';
+  showScreen('s-reveal');
+}
+
+window.hostStartElaborate = async () => {
+  await update(ref(db,`games/${myCode}`),{phase:'elaborate',timerStart:Date.now()});
+};
+window.hostSkipElaborate = async () => advanceRound();
+
+// ── ELABORATE ──────────────────────────────────────────────────────────
+function renderElaborate(state,round) {
+  document.getElementById('elab-word').textContent=round.word;
+  document.getElementById('elab-name').textContent=`${round.ownerName} elaborates`;
+  document.getElementById('elab-host-btn').style.display=isHost?'block':'none';
+  document.getElementById('elab-player-wait').style.display=isHost?'none':'block';
+  showScreen('s-elaborate');
+  const elapsed=state.timerStart?Math.floor((Date.now()-state.timerStart)/1000):0;
+  const rem=Math.max(0,60-elapsed);
+  runTimer('elab-timer','elab-arc',rem,()=>{});
+}
+
+window.hostNextRound = async () => advanceRound();
+
+async function advanceRound() {
+  const snap=await get(ref(db,`games/${myCode}`));
+  const state=snap.val(), next=state.currentRound+1;
+  if(next>=state.rounds.length) await update(ref(db,`games/${myCode}`),{phase:'done'});
+  else await update(ref(db,`games/${myCode}`),{phase:'round-intro',currentRound:next});
+}
+
+// ── SCORES ─────────────────────────────────────────────────────────────
+function renderScores(state) {
+  const scores=state.scores||{}, players=state.players||{};
+  const sorted=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('scores-list').innerHTML=sorted.map(([id,pts],i)=>{
+    const name=players[id]?.name||id;
+    return `<div class="player-row">
+      <div class="avatar">${name[0].toUpperCase()}</div>
+      <div style="flex:1;"><div style="font-weight:500;">${name}</div>${i===0?'<div style="font-size:12px;color:var(--accent);">winner</div>':''}</div>
+      <div class="score-num">${pts}</div>
+    </div>`;
+  }).join('');
+  showScreen('s-scores');
+}
+</script>
+</body>
+</html>
