@@ -263,12 +263,14 @@ function FlashOverlay() {
 
 // ─── Main App ────────────────────────────────────────────────────────────────
 
+// Load once at module level — not inside the component — so it never re-runs
+const _saved = loadSession();
+
 export default function App() {
-  const saved = loadSession();
   const [screen, setScreen] = useState("home");
-  const [gameCode, setGameCode] = useState(saved.code);
+  const [gameCode, setGameCode] = useState(_saved.code);
   const [joinCode, setJoinCode] = useState("");
-  const [playerName, setPlayerName] = useState(saved.name);
+  const [playerName, setPlayerName] = useState(_saved.name);
   const myId = useRef(getMyId()).current;
   const [game, setGame] = useState(null);
   const [words, setWords] = useState(["", "", ""]);
@@ -316,16 +318,14 @@ export default function App() {
 
   // ── Auto-reconnect on refresh if a saved session exists ───────────────────
   useEffect(() => {
-    if (!saved.code || !saved.name) return;
-    // Verify the game still exists and the player is still in it
-    get(ref(db, `games/${saved.code}`)).then(snap => {
+    if (!_saved.code || !_saved.name) return;
+    get(ref(db, `games/${_saved.code}`)).then(snap => {
       if (!snap.exists()) { clearSession(); return; }
       const data = snap.val();
       if (!data.players?.[myId]) { clearSession(); return; }
-      // Game exists and player is in it — silently rejoin
       setScreen("lobby");
     }).catch(() => clearSession());
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [myId]);
 
   // ── Firebase listener ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -451,7 +451,7 @@ export default function App() {
     if (currentRound?.ownerGuessCorrect && currentRound?.ownerGuessName) {
       setScorePopName(currentRound.ownerGuessName);
     }
-  }, [ownerRevealed]);
+  }, [ownerRevealed, currentRound]);
 
   // ── Confetti on scoreboard ─────────────────────────────────────────────────
   useEffect(() => {
