@@ -747,7 +747,7 @@ export default function App() {
       {!isDescriber && !isOwner && (
         <div className="highlight-card neutral">
           <div className="highlight-label">Get ready to guess</div>
-          <p><strong>{currentRound.describerName}</strong> is describing.<br /><strong>{currentRound.ownerName}</strong> sits out this round.</p>
+          <p><strong>{currentRound.describerName}</strong> is describing. Get ready to shout the word!</p>
         </div>
       )}
 
@@ -780,19 +780,36 @@ export default function App() {
           <div className="word-display word-slam" key={currentRound.word}>{currentRound.word}</div>
           <p className="muted-note" style={{ marginBottom: "1.5rem" }}>No saying the word, no spelling it out!</p>
           <button className="btn-primary" onClick={markWordGuessed}>Word guessed!</button>
-          <button className="btn-secondary" onClick={skipWord}>Skip this word</button>
+          {timer > 0
+            ? <button className="btn-secondary" onClick={skipWord}>Skip this word</button>
+            : <button className="btn-secondary" onClick={skipWord} style={{ borderColor: "var(--color-border-danger, #E24B4A)", color: "#E24B4A" }}>
+                Word was not guessed
+              </button>
+          }
         </>
       ) : isOwner ? (
         <>
           <div className="word-display" style={{ filter: "blur(8px)", userSelect: "none" }}>• • • • •</div>
           <p className="muted-note">Your word is being described — stay neutral!</p>
           <ReactionBar onReact={sendReaction} />
+          {/* Host fallback if describer's phone freezes — appears 8s after timer ends */}
+          {timer === 0 && isHost && (
+            <button className="btn-secondary" onClick={skipWord} style={{ marginTop: "1rem" }}>
+              Move on (time's up)
+            </button>
+          )}
         </>
       ) : (
         <>
           <div className="word-display" style={{ letterSpacing: "0.3em", color: "var(--muted)" }}>? ? ? ? ?</div>
           <p className="muted-note"><strong>{currentRound.describerName}</strong> is describing. Shout it out!</p>
           <ReactionBar onReact={sendReaction} />
+          {/* Host fallback — appears when timer hits zero */}
+          {timer === 0 && isHost && (
+            <button className="btn-secondary" onClick={skipWord} style={{ marginTop: "1rem" }}>
+              Move on (time's up)
+            </button>
+          )}
         </>
       )}
     </div>
@@ -815,7 +832,7 @@ export default function App() {
         ) : (
           <>
             <p style={{ marginBottom: "1rem", color: "var(--muted)" }}>
-              {currentRound.ownerName} sits out. Who wrote <em>{currentRound.word}</em>?
+              Someone sits out. Who wrote <em>{currentRound.word}</em>?
             </p>
             <VoteTally votes={votes} playerList={playerList} ownerName={currentRound.ownerName} eligibleVoters={eligibleVoters} />
             {!voteConfirmed ? (
