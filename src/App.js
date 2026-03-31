@@ -515,6 +515,9 @@ export default function App() {
     setGameCode(code);
     saveSession(code, playerName.trim());
     setScreen("lobby");
+  }
+
+  async function joinGame() {
     if (!playerName.trim()) { setError("Enter your name first."); return; }
     if (!joinCode.trim()) { setError("Enter a game code."); return; }
     const code = joinCode.trim().toUpperCase();
@@ -535,6 +538,9 @@ export default function App() {
     setGameCode(code);
     saveSession(code, playerName.trim());
     setScreen("lobby");
+  }
+
+  async function pickEmoji(emoji) {
     // Double-check it's not taken (race condition guard)
     if (takenEmojis.has(emoji)) return;
     await update(ref(db, `games/${gameCode}/players/${myId}`), { emoji });
