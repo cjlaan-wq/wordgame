@@ -18,13 +18,31 @@ function shuffle(arr) {
   return a;
 }
 
+// Switch to localStorage so ID survives refresh and tab close
 function getMyId() {
-  let id = sessionStorage.getItem("wordgame_myid");
+  let id = localStorage.getItem("wordgame_myid");
   if (!id) {
     id = Math.random().toString(36).substring(2, 10);
-    sessionStorage.setItem("wordgame_myid", id);
+    localStorage.setItem("wordgame_myid", id);
   }
   return id;
+}
+
+function saveSession(code, name) {
+  localStorage.setItem("wordgame_code", code);
+  localStorage.setItem("wordgame_name", name);
+}
+
+function loadSession() {
+  return {
+    code: localStorage.getItem("wordgame_code") || "",
+    name: localStorage.getItem("wordgame_name") || ""
+  };
+}
+
+function clearSession() {
+  localStorage.removeItem("wordgame_code");
+  localStorage.removeItem("wordgame_name");
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -246,10 +264,11 @@ function FlashOverlay() {
 // ─── Main App ────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const saved = loadSession();
   const [screen, setScreen] = useState("home");
-  const [gameCode, setGameCode] = useState("");
+  const [gameCode, setGameCode] = useState(saved.code);
   const [joinCode, setJoinCode] = useState("");
-  const [playerName, setPlayerName] = useState("");
+  const [playerName, setPlayerName] = useState(saved.name);
   const myId = useRef(getMyId()).current;
   const [game, setGame] = useState(null);
   const [words, setWords] = useState(["", "", ""]);
@@ -294,6 +313,19 @@ export default function App() {
     playerList.filter(p => p.id !== myId && p.emoji).map(p => p.emoji)
   );
   const availableEmojis = AVATAR_EMOJIS.filter(e => !takenEmojis.has(e));
+
+  // ── Auto-reconnect on refresh if a saved session exists ───────────────────
+  useEffect(() => {
+    if (!saved.code || !saved.name) return;
+    // Verify the game still exists and the player is still in it
+    get(ref(db, `games/${saved.code}`)).then(snap => {
+      if (!snap.exists()) { clearSession(); return; }
+      const data = snap.val();
+      if (!data.players?.[myId]) { clearSession(); return; }
+      // Game exists and player is in it — silently rejoin
+      setScreen("lobby");
+    }).catch(() => clearSession());
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Firebase listener ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -481,10 +513,8 @@ export default function App() {
       phase: "lobby"
     });
     setGameCode(code);
+    saveSession(code, playerName.trim());
     setScreen("lobby");
-  }
-
-  async function joinGame() {
     if (!playerName.trim()) { setError("Enter your name first."); return; }
     if (!joinCode.trim()) { setError("Enter a game code."); return; }
     const code = joinCode.trim().toUpperCase();
@@ -503,10 +533,8 @@ export default function App() {
       name: playerName.trim(), emoji: "", ready: false, score: 0
     });
     setGameCode(code);
+    saveSession(code, playerName.trim());
     setScreen("lobby");
-  }
-
-  async function pickEmoji(emoji) {
     // Double-check it's not taken (race condition guard)
     if (takenEmojis.has(emoji)) return;
     await update(ref(db, `games/${gameCode}/players/${myId}`), { emoji });
@@ -627,6 +655,7 @@ export default function App() {
     await update(ref(db), updates);
     setWords(["", "", ""]);
     setEditingWords(false);
+    // Don't clear session on play again — players stay in the same game
   }
 
   // ── Screens ────────────────────────────────────────────────────────────────
@@ -721,6 +750,9 @@ export default function App() {
       ) : (
         <p className="muted-note">Waiting for <strong>{game?.hostName}</strong> to start...</p>
       )}
+      <button className="btn-secondary" onClick={() => { clearSession(); setGameCode(""); setPlayerName(""); setScreen("home"); }} style={{ marginTop: 8 }}>
+        Leave game
+      </button>
       {error && <p className="error" style={{ marginTop: 8, textAlign: "center" }}>{error}</p>}
     </div>
   );
@@ -973,6 +1005,9 @@ export default function App() {
         {isHost
           ? <button className="btn-primary" onClick={resetGame}>Play again</button>
           : <p className="muted-note">Waiting for <strong>{game?.hostName}</strong> to start a new game...</p>}
+        <button className="btn-secondary" onClick={() => { clearSession(); setGameCode(""); setPlayerName(""); setScreen("home"); }} style={{ marginTop: 8 }}>
+          Leave game
+        </button>
       </div>
     );
   }
