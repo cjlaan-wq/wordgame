@@ -541,7 +541,10 @@ export default function App() {
   async function wordGuessed() {
     const newRevealQueue = [...revealQueue, { ...currentWord, wordGuessed: true, votes: {} }];
 
-    if (pile.length === 0) {
+    // Filter pile so describer never sees their own words
+    const availablePile = filterPileForDescriber(pile, describerName);
+
+    if (availablePile.length === 0) {
       await update(ref(db, `games/${gameCode}`), {
         currentWord: null,
         phase: "reveal-vote",
@@ -552,8 +555,8 @@ export default function App() {
     } else {
       await update(ref(db, `games/${gameCode}`), {
         revealQueue: newRevealQueue,
-        currentWord: pile[0],
-        pile: pile.slice(1),
+        currentWord: availablePile[0],
+        pile: availablePile.slice(1),
         phase: "describe"
       });
     }
@@ -777,18 +780,13 @@ export default function App() {
       <FloatingReactions reactions={floatingReactions} />
       <div className="phase-tag">Get ready</div>
       <div className="screen-title">{isDescriber ? "You're up!" : `${describerName} is describing`}</div>
-      <div className="card" style={{ marginTop: "1rem", textAlign: "center" }}>
-        <div style={{ fontSize: 48, fontWeight: 600, color: "var(--muted)" }}>
-          {countdown !== null ? countdown || "Go!" : "..."}
-        </div>
-      </div>
     </div>
   );
 
   if (phase === "describe" && currentWord) return (
     <div className="screen" style={{ animation: timer <= 10 && timer > 0 ? "panicPulse 0.6s ease-in-out infinite" : "none" }}>
       <FloatingReactions reactions={floatingReactions} />
-      <div className="phase-tag">Describe · {pile.length} word{pile.length !== 1 ? "s" : ""} left</div>
+      <div className="phase-tag">Describe</div>
       <TimerRing seconds={timer} total={timerTotal} />
 
       {isDescriber ? (
