@@ -3,7 +3,7 @@ import { db } from "./firebase";
 import { ref, set, onValue, update, get, runTransaction } from "firebase/database";
 import "./App.css";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function randomCode() {
   return Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -18,7 +18,6 @@ function shuffle(arr) {
   return a;
 }
 
-// Switch to localStorage so ID survives refresh and tab close
 function getMyId() {
   let id = localStorage.getItem("wordgame_myid");
   if (!id) {
@@ -45,9 +44,8 @@ function clearSession() {
   localStorage.removeItem("wordgame_name");
 }
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-// FIX: removed duplicate 🦋 (was at index 4 and 19)
 const AVATAR_EMOJIS = [
   "🐶","🦊","🐸","🐙","🦁","🐼","🦄","🐯","🦀",
   "🐳","🦜","🐝","🦔","🐲","🦩","🐠","🦭","🐨","🦋","🐻"
@@ -55,7 +53,7 @@ const AVATAR_EMOJIS = [
 
 const REACTION_EMOJIS = ["😂", "🔥", "😮", "👏", "💀"];
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function Avatar({ name, emoji, size = 36 }) {
   const colors = ["#C8B8F5","#9FE1CB","#F5C4B3","#B5D4F4","#FAC775","#F4C0D1"];
@@ -95,71 +93,26 @@ function TimerRing({ seconds, total, size = 120 }) {
   );
 }
 
-function VoteTally({ votes, playerList, ownerName, eligibleVoters }) {
-  const tally = {};
-  Object.values(votes).forEach(v => { tally[v.name] = (tally[v.name] || 0) + 1; });
-  const voteCount = Object.keys(votes).length;
-  return (
-    <div style={{ marginBottom: "1rem" }}>
-      <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
-        {voteCount} of {eligibleVoters.length} voted
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {playerList.map(p => {
-          const count = tally[p.name] || 0;
-          const isOwner = p.name === ownerName;
-          return (
-            <div key={p.id} style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: count > 0 ? "var(--text)" : "var(--surface)",
-              color: count > 0 ? "var(--bg)" : "var(--text)",
-              border: isOwner ? "0.5px dashed var(--border)" : "0.5px solid var(--border)",
-              borderRadius: 999, padding: "6px 14px", fontSize: 14,
-              opacity: isOwner ? 0.5 : 1, transition: "all 0.2s"
-            }}>
-              {p.emoji && <span style={{ fontSize: 16 }}>{p.emoji}</span>}
-              {p.name}
-              {count > 0 && (
-                <span style={{
-                  background: "rgba(255,255,255,0.25)", borderRadius: 999,
-                  padding: "1px 7px", fontSize: 12, fontWeight: 600
-                }}>{count}</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// FIX: silhouette uses opacity trick so emoji shape is visible as dark blob,
-// then fades in colour on reveal — works with or without emoji
 function SilhouetteReveal({ name, emoji, revealed }) {
   const colors = ["#C8B8F5","#9FE1CB","#F5C4B3","#B5D4F4","#FAC775","#F4C0D1"];
   const idx = name ? name.charCodeAt(0) % colors.length : 0;
   return (
-    <div style={{ textAlign: "center", marginBottom: "1rem" }}>
+    <div style={{ textAlign: "center", marginBottom: "0.5rem" }}>
       <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12, fontWeight: 500, letterSpacing: "0.05em" }}>
         {revealed ? name : "Who's this player?!"}
       </div>
       <div style={{ position: "relative", width: 90, height: 90, margin: "0 auto 0.75rem" }}>
-        {/* Coloured background circle — fades in on reveal */}
         <div style={{
           position: "absolute", inset: 0, borderRadius: "50%",
-          background: colors[idx],
-          opacity: revealed ? 1 : 0,
+          background: colors[idx], opacity: revealed ? 1 : 0,
           transition: "opacity 0.4s ease",
           animation: revealed ? "silhouetteFlip 0.5s ease-in-out" : "none"
         }} />
-        {/* Dark silhouette layer — fades out on reveal */}
         <div style={{
           position: "absolute", inset: 0, borderRadius: "50%",
-          background: "#1A1916",
-          opacity: revealed ? 0 : 1,
+          background: "#1A1916", opacity: revealed ? 0 : 1,
           transition: "opacity 0.4s ease"
         }} />
-        {/* Emoji — always rendered, invisible on dark bg until revealed */}
         <div style={{
           position: "absolute", inset: 0, borderRadius: "50%",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -183,13 +136,11 @@ function FloatingReactions({ reactions }) {
   return (
     <div style={{
       position: "fixed", bottom: 80, left: 0, right: 0,
-      pointerEvents: "none", zIndex: 100,
-      display: "flex", justifyContent: "center"
+      pointerEvents: "none", zIndex: 100, display: "flex", justifyContent: "center"
     }}>
       {reactions.map(r => (
         <span key={r.id} style={{
-          position: "absolute", fontSize: 32,
-          left: `${r.x}%`,
+          position: "absolute", fontSize: 32, left: `${r.x}%`,
           animation: "floatUp 1.8s ease-out forwards"
         }}>{r.emoji}</span>
       ))}
@@ -238,8 +189,7 @@ function Confetti() {
     <>
       {pieces.map(p => (
         <div key={p.id} className="confetti-piece" style={{
-          left: `${p.x}%`, top: -20,
-          width: p.size, height: p.size,
+          left: `${p.x}%`, top: -20, width: p.size, height: p.size,
           background: p.color,
           animationDuration: `${p.duration}s`,
           animationDelay: `${p.delay}s`
@@ -261,10 +211,11 @@ function FlashOverlay() {
   return <div className="flash-overlay" />;
 }
 
-// ─── Main App ────────────────────────────────────────────────────────────────
+// ─── Session ──────────────────────────────────────────────────────────────────
 
-// Load once at module level — not inside the component — so it never re-runs
 const _saved = loadSession();
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -281,17 +232,18 @@ export default function App() {
   const [error, setError] = useState("");
   const [editingWords, setEditingWords] = useState(false);
   const timerRef = useRef(null);
-  const revealTriggeredRef = useRef(false);
   const [floatingReactions, setFloatingReactions] = useState([]);
   const seenReactionsRef = useRef(new Set());
   const [countdown, setCountdown] = useState(null);
   const [showFlash, setShowFlash] = useState(false);
   const [ownerRevealed, setOwnerRevealed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [scorePopName, setScorePopName] = useState(null);
+  const [scorePopNames, setScorePopNames] = useState([]);
   const countdownRef = useRef(null);
+  const revealTriggeredRef = useRef(false);
 
-  // ── Derived state ──────────────────────────────────────────────────────────
+  // ── Derived state ─────────────────────────────────────────────────────────
+
   const phase = game?.phase;
   const players = game?.players || {};
   const playerList = Object.entries(players).map(([id, p]) => ({ id, ...p }));
@@ -299,24 +251,28 @@ export default function App() {
   const myPlayer = players[myId];
   const myName = myPlayer?.name || playerName;
   const myEmoji = myPlayer?.emoji || "";
-  const currentRound = game?.rounds && game.currentRoundIdx >= 0
-    ? game.rounds[game.currentRoundIdx] : null;
 
-  const isDescriber = currentRound?.describerName === myName;
-  const isOwner = currentRound?.ownerName === myName;
+  // New structure: pile, currentWord, revealQueue, describerName
+  const pile = game?.pile || [];                         // words not yet described
+  const currentWord = game?.currentWord || null;         // word being described now
+  const revealQueue = game?.revealQueue || [];           // words waiting to be revealed
+  const currentReveal = game?.currentReveal || null;     // word currently being revealed
+  const describerName = game?.describerName || "";
+  const roundWordsGuessed = game?.roundWordsGuessed || 0; // count of guessed words this turn
 
-  const votes = currentRound?.votes || {};
+  const isDescriber = describerName === myName;
+  const isOwner = currentReveal?.ownerName === myName;
+
+  const votes = currentReveal?.votes || {};
   const voteCount = Object.keys(votes).length;
-  const eligibleVoters = playerList.filter(p => p.name !== currentRound?.ownerName);
+  const eligibleVoters = playerList.filter(p => p.name !== currentReveal?.ownerName);
   const allVoted = eligibleVoters.length > 0 && voteCount >= eligibleVoters.length;
 
-  // Emojis already claimed by other players in the lobby
-  const takenEmojis = new Set(
-    playerList.filter(p => p.id !== myId && p.emoji).map(p => p.emoji)
-  );
+  const takenEmojis = new Set(playerList.filter(p => p.id !== myId && p.emoji).map(p => p.emoji));
   const availableEmojis = AVATAR_EMOJIS.filter(e => !takenEmojis.has(e));
 
-  // ── Auto-reconnect on refresh if a saved session exists ───────────────────
+  // ── Auto-reconnect ────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!_saved.code || !_saved.name) return;
     get(ref(db, `games/${_saved.code}`)).then(snap => {
@@ -327,14 +283,14 @@ export default function App() {
     }).catch(() => clearSession());
   }, [myId]);
 
-  // ── Firebase listener ──────────────────────────────────────────────────────
+  // ── Firebase listener ─────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!gameCode) return;
     const r = ref(db, `games/${gameCode}`);
     const unsub = onValue(r, snap => {
       const data = snap.val();
       if (!data) return;
-      // Strip reactions node — handled by its own listener to avoid re-renders
       const { reactions: _, ...gameData } = data;
       setGame(gameData);
       if (gameData.phase === "lobby") setScreen("lobby");
@@ -347,7 +303,8 @@ export default function App() {
     return () => unsub();
   }, [gameCode]);
 
-  // ── Timer tick ─────────────────────────────────────────────────────────────
+  // ── Timer tick ────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (!game?.timerStart) return;
@@ -358,7 +315,8 @@ export default function App() {
     return () => clearInterval(timerRef.current);
   }, [game?.timerStart, game?.timerDuration]);
 
-  // ── Reaction listener ──────────────────────────────────────────────────────
+  // ── Reaction listener ─────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!gameCode) return;
     const r = ref(db, `games/${gameCode}/reactions`);
@@ -373,9 +331,7 @@ export default function App() {
         const floatId = `${id}-${now}`;
         const x = 20 + Math.random() * 60;
         setFloatingReactions(prev => [...prev, { id: floatId, emoji: reaction.emoji, x }]);
-        setTimeout(() => {
-          setFloatingReactions(prev => prev.filter(r => r.id !== floatId));
-        }, 1800);
+        setTimeout(() => setFloatingReactions(prev => prev.filter(r => r.id !== floatId)), 1800);
       });
     });
     return () => unsub();
@@ -383,134 +339,122 @@ export default function App() {
 
   async function sendReaction(emoji) {
     const reactionId = `${myId}_${Date.now()}`;
-    await set(ref(db, `games/${gameCode}/reactions/${reactionId}`), {
-      emoji, ts: Date.now(), senderId: myId
-    });
+    await set(ref(db, `games/${gameCode}/reactions/${reactionId}`), { emoji, ts: Date.now(), senderId: myId });
     setTimeout(() => set(ref(db, `games/${gameCode}/reactions/${reactionId}`), null), 3000);
   }
 
-  // ── Vibrate describer on pregame ───────────────────────────────────────────
-  useEffect(() => {
-    if (phase === "pregame" && isDescriber && navigator.vibrate) {
-      navigator.vibrate([200, 100, 200]);
-    }
-  }, [phase, isDescriber]);
+  // ── Countdown for non-describers ──────────────────────────────────────────
 
-  // ── Reset state on new round ───────────────────────────────────────────────
-  useEffect(() => {
-    setMyVote(null);
-    setVoteConfirmed(false);
-    revealTriggeredRef.current = false;
-    setOwnerRevealed(false);
-    setShowFlash(false);
-    setScorePopName(null);
-  }, [game?.currentRoundIdx]);
-
-  // ── Countdown — only for non-describers (FIX: describer sees word instantly)
   useEffect(() => {
     if (phase !== "describe") {
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current);
-        countdownRef.current = null;
-        setCountdown(null);
-      }
+      if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; setCountdown(null); }
       return;
     }
-    if (isDescriber) return; // describer sees word immediately, no countdown
-    if (countdownRef.current) return;
+    if (isDescriber || countdownRef.current) return;
     setCountdown(3);
     let n = 3;
     countdownRef.current = setInterval(() => {
       n--;
-      if (n < 0) {
-        clearInterval(countdownRef.current);
-        countdownRef.current = null;
-        setCountdown(null);
-      } else {
-        setCountdown(n);
-      }
+      if (n < 0) { clearInterval(countdownRef.current); countdownRef.current = null; setCountdown(null); }
+      else setCountdown(n);
     }, 900);
-    return () => {
-      clearInterval(countdownRef.current);
-      countdownRef.current = null;
-    };
+    return () => { clearInterval(countdownRef.current); countdownRef.current = null; };
   }, [phase, isDescriber]);
 
-  // ── Flash + reveal effects when phase becomes "reveal" ─────────────────────
+  // ── Flash + reveal on reveal-show phase ───────────────────────────────────
+
   useEffect(() => {
-    if (phase !== "reveal") return;
+    if (phase !== "reveal-show") { setOwnerRevealed(false); setShowFlash(false); setScorePopNames([]); revealTriggeredRef.current = false; return; }
     setShowFlash(true);
     setTimeout(() => setShowFlash(false), 600);
     setTimeout(() => setOwnerRevealed(true), 800);
-  }, [phase]);
+  }, [phase, currentReveal?.word]);
 
-  // FIX: score pop reads from game data once ownerRevealed fires,
-  // by which time Firebase has updated currentRound with ownerGuessName
+  // Set score pop names after reveal
   useEffect(() => {
-    if (!ownerRevealed) return;
-    if (currentRound?.ownerGuessCorrect && currentRound?.ownerGuessName) {
-      setScorePopName(currentRound.ownerGuessName);
-    }
-  }, [ownerRevealed, currentRound]);
+    if (!ownerRevealed || !currentReveal) return;
+    const names = [];
+    if (currentReveal.ownerGuessCorrect && currentReveal.ownerGuessName) names.push(currentReveal.ownerGuessName);
+    setScorePopNames(names);
+  }, [ownerRevealed, currentReveal]);
 
-  // ── Confetti on scoreboard ─────────────────────────────────────────────────
+  // ── Confetti ──────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (phase !== "scoreboard") return;
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 4000);
   }, [phase]);
 
-  // ── Auto-reveal when all votes in (host only) ──────────────────────────────
+  // ── Auto-reveal when all votes in ─────────────────────────────────────────
+
   useEffect(() => {
-    if (!allVoted || phase !== "guess-owner" || !isHost) return;
+    if (!allVoted || phase !== "reveal-vote" || !isHost) return;
     if (revealTriggeredRef.current) return;
     revealTriggeredRef.current = true;
 
     const tally = {};
     Object.values(votes).forEach(v => { tally[v.name] = (tally[v.name] || 0) + 1; });
     const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+    const topCount = sorted[0]?.[1] ?? 0;
+    const isTie = sorted.length > 1 && sorted[1][1] === topCount;
     const topName = sorted[0]?.[0];
-    const isTie = sorted.length > 1 && sorted[1][1] === sorted[0]?.[1];
 
-    if (isTie) {
-      const updates = {};
-      updates[`games/${gameCode}/rounds/${game.currentRoundIdx}/ownerGuessName`] = null;
-      updates[`games/${gameCode}/rounds/${game.currentRoundIdx}/ownerGuessCorrect`] = false;
-      updates[`games/${gameCode}/rounds/${game.currentRoundIdx}/tie`] = true;
-      updates[`games/${gameCode}/phase`] = "reveal";
-      update(ref(db), updates);
-      return;
-    }
+    const correctVoters = Object.values(votes).filter(v => v.name === currentReveal.ownerName);
 
-    const topEntry = playerList.find(p => p.name === topName);
-    if (!topEntry) return;
-
-    const correct = topEntry.name === currentRound.ownerName;
     const updates = {};
-    updates[`games/${gameCode}/rounds/${game.currentRoundIdx}/ownerGuessName`] = topEntry.name;
-    updates[`games/${gameCode}/rounds/${game.currentRoundIdx}/ownerGuessCorrect`] = correct;
-    updates[`games/${gameCode}/phase`] = "reveal";
+    updates[`games/${gameCode}/currentReveal/ownerGuessCorrect`] = correctVoters.length > 0;
+    updates[`games/${gameCode}/currentReveal/ownerGuessName`] = isTie ? null : topName;
+    updates[`games/${gameCode}/currentReveal/tie`] = isTie;
+    updates[`games/${gameCode}/phase`] = "reveal-show";
     update(ref(db), updates);
 
-    if (correct && currentRound.wordGuessed) {
-      runTransaction(ref(db, `games/${gameCode}/players/${topEntry.id}/score`), s => (s || 0) + 1);
+    // Award +3 to correct voters
+    correctVoters.forEach(v => {
+      runTransaction(ref(db, `games/${gameCode}/players/${v.voterId}/score`), s => (s || 0) + 3);
+    });
+
+    // Award +2 to describer and +1 to all guessers (excl owner) if word was guessed
+    if (currentReveal.wordGuessed) {
+      const describerEntry = playerList.find(p => p.name === describerName);
+      if (describerEntry) {
+        runTransaction(ref(db, `games/${gameCode}/players/${describerEntry.id}/score`), s => (s || 0) + 2);
+      }
+      playerList.forEach(p => {
+        if (p.name !== currentReveal.ownerName && p.name !== describerName) {
+          runTransaction(ref(db, `games/${gameCode}/players/${p.id}/score`), s => (s || 0) + 1);
+        }
+      });
     }
   }, [allVoted, phase, isHost]);
 
-  // ── Actions ────────────────────────────────────────────────────────────────
+  // ── Reset vote state when currentReveal changes ───────────────────────────
+
+  useEffect(() => {
+    setMyVote(null);
+    setVoteConfirmed(false);
+    revealTriggeredRef.current = false;
+  }, [currentReveal?.word]);
+
+  // ── Vibrate describer on pregame ──────────────────────────────────────────
+
+  useEffect(() => {
+    if (phase === "pregame" && isDescriber && navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+    }
+  }, [phase, isDescriber]);
+
+  // ── Actions ───────────────────────────────────────────────────────────────
 
   async function createGame() {
     if (!playerName.trim()) { setError("Enter your name first."); return; }
     const code = randomCode();
     await set(ref(db, `games/${code}`), {
-      hostId: myId,
-      hostName: playerName.trim(),
-      status: "lobby",
-      // emoji left empty — player picks in lobby
+      hostId: myId, hostName: playerName.trim(), status: "lobby",
       players: { [myId]: { name: playerName.trim(), emoji: "", ready: false, score: 0 } },
-      rounds: null,
-      currentRoundIdx: -1,
-      phase: "lobby"
+      pile: null, currentWord: null, revealQueue: null, currentReveal: null,
+      describerName: "", describerIdx: 0, roundWordsGuessed: 0,
+      phase: "lobby", timerStart: null, timerDuration: null
     });
     setGameCode(code);
     saveSession(code, playerName.trim());
@@ -525,23 +469,18 @@ export default function App() {
     if (!snap.exists()) { setError("Game not found. Check the code."); return; }
     const data = snap.val();
     if (data.status !== "lobby") { setError("This game has already started."); return; }
-
     const existingNames = Object.values(data.players || {}).map(p => p.name.toLowerCase().trim());
     if (existingNames.includes(playerName.toLowerCase().trim())) {
       setError(`The name "${playerName.trim()}" is already taken. Pick a different name.`);
       return;
     }
-
-    await update(ref(db, `games/${code}/players/${myId}`), {
-      name: playerName.trim(), emoji: "", ready: false, score: 0
-    });
+    await update(ref(db, `games/${code}/players/${myId}`), { name: playerName.trim(), emoji: "", ready: false, score: 0 });
     setGameCode(code);
     saveSession(code, playerName.trim());
     setScreen("lobby");
   }
 
   async function pickEmoji(emoji) {
-    // Double-check it's not taken (race condition guard)
     if (takenEmojis.has(emoji)) return;
     await update(ref(db, `games/${gameCode}/players/${myId}`), { emoji });
   }
@@ -550,49 +489,41 @@ export default function App() {
     if (!myEmoji) { setError("Pick an avatar first!"); return; }
     const filled = words.filter(w => w.trim());
     if (filled.length < 2) { setError("Add at least 2 words."); return; }
-    await update(ref(db, `games/${gameCode}/players/${myId}`), {
-      words: filled.map(w => w.trim()), ready: true
-    });
-    setError("");
-    setEditingWords(false);
+    await update(ref(db, `games/${gameCode}/players/${myId}`), { words: filled.map(w => w.trim()), ready: true });
+    setError(""); setEditingWords(false);
   }
 
   async function startGame() {
     const ids = Object.keys(players);
     if (ids.length < 2) { setError("Need at least 2 players."); return; }
     const notReady = ids.filter(id => !players[id].ready);
-    if (notReady.length > 0) {
-      setError(`Still waiting for: ${notReady.map(id => players[id].name).join(", ")}`);
-      return;
-    }
+    if (notReady.length > 0) { setError(`Still waiting for: ${notReady.map(id => players[id].name).join(", ")}`); return; }
 
-    let allWords = [];
+    let pile = [];
     ids.forEach(id => {
       (players[id].words || []).forEach(w => {
-        allWords.push({ word: w, ownerName: players[id].name, ownerId: id });
+        pile.push({ word: w, ownerName: players[id].name, ownerId: id });
       });
     });
-    allWords = shuffle(allWords);
+    pile = shuffle(pile);
 
+    // Pick first describer
     const names = ids.map(id => players[id].name);
-    const rounds = allWords.map((w, i) => {
-      const available = names.filter(n => n !== w.ownerName);
-      return {
-        word: w.word,
-        ownerName: w.ownerName,
-        ownerId: w.ownerId,
-        describerName: available[i % available.length],
-        wordGuessed: false,
-        votes: {},
-        ownerGuessName: null,
-        ownerGuessCorrect: false,
-        skipped: false
-      };
-    });
+    const firstWord = pile[0];
+    const availableDescs = names.filter(n => n !== firstWord.ownerName);
+    const firstDescriber = availableDescs[0];
 
     await update(ref(db, `games/${gameCode}`), {
-      rounds, currentRoundIdx: 0, status: "playing",
-      phase: "pregame", timerStart: null, timerDuration: null
+      pile: pile.slice(1),
+      currentWord: pile[0],
+      revealQueue: [],
+      currentReveal: null,
+      describerName: firstDescriber,
+      describerIdx: 0,
+      roundWordsGuessed: 0,
+      status: "playing",
+      phase: "pregame",
+      timerStart: null, timerDuration: null
     });
   }
 
@@ -602,46 +533,134 @@ export default function App() {
     });
   }
 
-  async function markWordGuessed() {
-    const idx = game.currentRoundIdx;
-    await update(ref(db, `games/${gameCode}/rounds/${idx}`), { wordGuessed: true });
+  // Word guessed — add to reveal queue, pull next word from pile
+  async function wordGuessed() {
+    const newRevealQueue = [...revealQueue, { ...currentWord, wordGuessed: true, votes: {} }];
+    const newGuessedCount = roundWordsGuessed + 1;
+
+    if (pile.length === 0) {
+      // No more words — end describing, go straight to reveals
+      await update(ref(db, `games/${gameCode}`), {
+        revealQueue: newRevealQueue,
+        currentWord: null,
+        roundWordsGuessed: newGuessedCount,
+        phase: "reveal-vote",
+        currentReveal: newRevealQueue[0],
+        revealQueue: newRevealQueue.slice(1),
+        timerStart: null, timerDuration: null
+      });
+    } else {
+      // Check if next word's owner is same as describer — skip if so
+      let nextPile = [...pile];
+      let nextWord = nextPile.shift();
+      // If next word is owned by the describer, skip it back to end of pile
+      while (nextWord && nextWord.ownerName === describerName && nextPile.length > 0) {
+        nextPile.push(nextWord);
+        nextWord = nextPile.shift();
+      }
+      await update(ref(db, `games/${gameCode}`), {
+        revealQueue: newRevealQueue,
+        currentWord: nextWord,
+        pile: nextPile,
+        roundWordsGuessed: newGuessedCount,
+        phase: "describe" // stay in describe, timer keeps running
+      });
+    }
+  }
+
+  // Skip — put word back at bottom of pile, pull next
+  async function skipWord() {
+    const newPile = [...pile, currentWord];
+    let nextPile = [...newPile];
+    let nextWord = nextPile.shift();
+
     await update(ref(db, `games/${gameCode}`), {
-      phase: "guess-owner", timerStart: null, timerDuration: null
+      pile: nextPile,
+      currentWord: nextWord,
+      phase: "describe"
     });
   }
 
-  async function skipWord() {
-    const idx = game.currentRoundIdx;
-    await update(ref(db, `games/${gameCode}/rounds/${idx}`), { skipped: true, wordGuessed: false });
+  // Timer ended or describer clicks "time's up" — current word not guessed, add to queue
+  async function timeUp() {
+    const notGuessedWord = { ...currentWord, wordGuessed: false, votes: {} };
+    const newRevealQueue = [...revealQueue, notGuessedWord];
+
+    if (newRevealQueue.length === 0) {
+      // Nothing played this round — back to pregame with new describer
+      await advanceDescriber([]);
+      return;
+    }
+
     await update(ref(db, `games/${gameCode}`), {
-      phase: "guess-owner", timerStart: null, timerDuration: null
+      revealQueue: newRevealQueue.slice(1),
+      currentReveal: newRevealQueue[0],
+      currentWord: null,
+      phase: "reveal-vote",
+      timerStart: null, timerDuration: null
     });
+  }
+
+  // Only time ran out with no words played at all
+  async function timeUpNoWords() {
+    if (pile.length === 0) {
+      await update(ref(db, `games/${gameCode}`), { phase: "scoreboard", status: "done" });
+      return;
+    }
+    await advanceDescriber(pile);
   }
 
   async function confirmMyVote() {
     if (!myVote || isOwner) return;
-    await update(ref(db, `games/${gameCode}/rounds/${game.currentRoundIdx}/votes/${myId}`), {
-      name: myVote.name, voterId: myId
-    });
+    await update(ref(db, `games/${gameCode}/currentReveal/votes/${myId}`), { name: myVote.name, voterId: myId });
     setVoteConfirmed(true);
   }
 
-  async function startElaborate() {
-    await update(ref(db, `games/${gameCode}`), {
-      phase: "elaborate", timerStart: Date.now(), timerDuration: 60
-    });
+  // After elaboration — move to next word in reveal queue or next round
+  async function nextReveal() {
+    if (revealQueue.length > 0) {
+      // More words to reveal this round
+      await update(ref(db, `games/${gameCode}`), {
+        currentReveal: revealQueue[0],
+        revealQueue: revealQueue.slice(1),
+        phase: "reveal-vote"
+      });
+    } else {
+      // All reveals done — advance to next describer
+      await advanceDescriber(pile);
+    }
   }
 
-  async function nextRound() {
-    const nextIdx = game.currentRoundIdx + 1;
-    if (nextIdx >= game.rounds.length) {
-      await update(ref(db, `games/${gameCode}`), { phase: "scoreboard", status: "done" });
-    } else {
-      await update(ref(db, `games/${gameCode}`), {
-        currentRoundIdx: nextIdx, phase: "pregame",
-        timerStart: null, timerDuration: null
-      });
+  async function advanceDescriber(remainingPile) {
+    if (remainingPile.length === 0) {
+      await update(ref(db, `games/${gameCode}`), { phase: "scoreboard", status: "done", currentReveal: null });
+      return;
     }
+
+    // Pick next describer — rotate through player names, skip owner of next word
+    const names = playerList.map(p => p.name);
+    const currentDescriberIdx = game?.describerIdx || 0;
+    let nextIdx = (currentDescriberIdx + 1) % names.length;
+    const nextWord = remainingPile[0];
+
+    // Make sure describer isn't the owner of the next word
+    let attempts = 0;
+    while (names[nextIdx] === nextWord.ownerName && attempts < names.length) {
+      nextIdx = (nextIdx + 1) % names.length;
+      attempts++;
+    }
+
+    await update(ref(db, `games/${gameCode}`), {
+      pile: remainingPile.slice(1),
+      currentWord: remainingPile[0],
+      revealQueue: [],
+      currentReveal: null,
+      describerName: names[nextIdx],
+      describerIdx: nextIdx,
+      roundWordsGuessed: 0,
+      phase: "pregame",
+      timerStart: null, timerDuration: null
+    });
   }
 
   async function resetGame() {
@@ -650,10 +669,12 @@ export default function App() {
       updates[`games/${gameCode}/players/${id}/score`] = 0;
       updates[`games/${gameCode}/players/${id}/ready`] = false;
       updates[`games/${gameCode}/players/${id}/words`] = null;
-      // emoji kept — players don't re-pick on play again
     });
-    updates[`games/${gameCode}/rounds`] = null;
-    updates[`games/${gameCode}/currentRoundIdx`] = -1;
+    updates[`games/${gameCode}/pile`] = null;
+    updates[`games/${gameCode}/currentWord`] = null;
+    updates[`games/${gameCode}/revealQueue`] = null;
+    updates[`games/${gameCode}/currentReveal`] = null;
+    updates[`games/${gameCode}/describerName`] = "";
     updates[`games/${gameCode}/status`] = "lobby";
     updates[`games/${gameCode}/phase`] = "lobby";
     updates[`games/${gameCode}/timerStart`] = null;
@@ -661,10 +682,9 @@ export default function App() {
     await update(ref(db), updates);
     setWords(["", "", ""]);
     setEditingWords(false);
-    // Don't clear session on play again — players stay in the same game
   }
 
-  // ── Screens ────────────────────────────────────────────────────────────────
+  // ── Screens ───────────────────────────────────────────────────────────────
 
   if (screen === "home") return (
     <div className="screen">
@@ -687,30 +707,25 @@ export default function App() {
 
   if (screen === "lobby" && phase === "lobby") return (
     <div className="screen">
-      <div className="phase-tag">Lobby</div>
+      <div className="phase-tag">Game code</div>
       <div className="game-code">{gameCode}</div>
-      <p className="subtitle" style={{ marginBottom: "1.5rem" }}>Share this code with your team</p>
+      <p className="subtitle" style={{ marginBottom: "2rem" }}>Share this code — everyone joins on their own phone</p>
 
-      {/* FIX: emoji picker in lobby, only shows unclaimed emojis */}
       <div className="card" style={{ marginBottom: "1rem" }}>
-        <label>Pick your avatar
-          {myEmoji && <span style={{ marginLeft: 8, fontSize: 20 }}>{myEmoji}</span>}
-        </label>
-        {availableEmojis.length === 0 ? (
-          <p style={{ color: "var(--muted)", fontSize: 14 }}>All avatars are taken!</p>
-        ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {/* FIX: use index as key, not emoji value */}
-            {availableEmojis.map((e, i) => (
-              <button key={i} onClick={() => pickEmoji(e)} style={{
-                fontSize: 26, background: myEmoji === e ? "var(--text)" : "var(--bg)",
-                border: `1.5px solid ${myEmoji === e ? "var(--text)" : "var(--border)"}`,
-                borderRadius: 12, width: 46, height: 46, cursor: "pointer",
-                transition: "all 0.15s", transform: myEmoji === e ? "scale(1.15)" : "scale(1)"
-              }}>{e}</button>
-            ))}
-          </div>
-        )}
+        <label>Pick your avatar {myEmoji && <span style={{ marginLeft: 8, fontSize: 20 }}>{myEmoji}</span>}</label>
+        {availableEmojis.length === 0
+          ? <p style={{ color: "var(--muted)", fontSize: 14 }}>All avatars are taken!</p>
+          : <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {availableEmojis.map((e, i) => (
+                <button key={i} onClick={() => pickEmoji(e)} style={{
+                  fontSize: 26, background: myEmoji === e ? "var(--text)" : "var(--bg)",
+                  border: `1.5px solid ${myEmoji === e ? "var(--text)" : "var(--border)"}`,
+                  borderRadius: 12, width: 46, height: 46, cursor: "pointer",
+                  transition: "all 0.15s", transform: myEmoji === e ? "scale(1.15)" : "scale(1)"
+                }}>{e}</button>
+              ))}
+            </div>
+        }
       </div>
 
       <div className="card" style={{ marginBottom: "1rem" }}>
@@ -749,13 +764,9 @@ export default function App() {
         ))}
       </div>
 
-      {isHost ? (
-        <button className="btn-primary" onClick={startGame} style={{ marginTop: "1rem" }}>
-          Start game →
-        </button>
-      ) : (
-        <p className="muted-note">Waiting for <strong>{game?.hostName}</strong> to start...</p>
-      )}
+      {isHost
+        ? <button className="btn-primary" onClick={startGame} style={{ marginTop: "1rem" }}>Start game →</button>
+        : <p className="muted-note">Waiting for <strong>{game?.hostName}</strong> to start...</p>}
       <button className="btn-secondary" onClick={() => { clearSession(); setGameCode(""); setPlayerName(""); setScreen("home"); }} style={{ marginTop: 8 }}>
         Leave game
       </button>
@@ -763,76 +774,73 @@ export default function App() {
     </div>
   );
 
-  if (phase === "pregame" && currentRound) return (
+  if (phase === "pregame" && currentWord) return (
     <div className="screen">
-      <div className="phase-tag">Round {game.currentRoundIdx + 1} of {game.rounds.length}</div>
-      <div className="progress-bar">
-        <div className="progress-fill" style={{ width: `${(game.currentRoundIdx / game.rounds.length) * 100}%` }} />
+      <div className="phase-tag">Up next</div>
+      <div className="screen-title">
+        {isDescriber ? "Your turn!" : currentWord.ownerName === myName ? "Sit this one out" : "Get ready"}
       </div>
 
       {isDescriber && (
         <div className="highlight-card describer">
-          <div className="highlight-label">Your turn to describe!</div>
-          <p>You'll see the word. Get everyone to say it — no saying or spelling it!</p>
+          <div className="highlight-label">You're describing</div>
+          <p>You have 30 seconds. Get as many words as you can — say the word and move on!</p>
         </div>
       )}
-      {isOwner && (
+      {currentWord.ownerName === myName && !isDescriber && (
         <div className="highlight-card owner">
-          <div className="highlight-label">Your word is up — sit this one out</div>
-          <p>Stay poker-faced when the word appears!</p>
+          <div className="highlight-label">Your word might come up</div>
+          <p>Stay poker-faced — don't give anything away!</p>
         </div>
       )}
-      {!isDescriber && !isOwner && (
+      {currentWord.ownerName !== myName && !isDescriber && (
         <div className="highlight-card neutral">
-          <div className="highlight-label">Get ready to guess</div>
-          <p><strong>{currentRound.describerName}</strong> is describing. Get ready to shout the word!</p>
+          <div className="highlight-label"><strong>{describerName}</strong> is up</div>
+          <p>Shout the word as soon as you know it!</p>
         </div>
       )}
 
-      {game.currentRoundIdx + 1 < game.rounds.length &&
-        game.rounds[game.currentRoundIdx + 1].describerName === myName && (
-        <p className="muted-note" style={{ marginTop: "0.75rem" }}>
-          Heads up — you're describing next round too!
-        </p>
-      )}
+      <div className="card" style={{ marginTop: "1rem" }}>
+        <label>Words left in pile</label>
+        <div style={{ fontSize: 22, fontWeight: 600 }}>{pile.length + 1}</div>
+      </div>
 
-      {isHost ? (
-        <button className="btn-primary" onClick={beginDescribe} style={{ marginTop: "1.5rem" }}>
-          Show the word to {currentRound.describerName}
-        </button>
-      ) : (
-        <p className="muted-note">Waiting for <strong>{game?.hostName}</strong> to start the round...</p>
-      )}
+      {isHost
+        ? <button className="btn-primary" onClick={beginDescribe} style={{ marginTop: "1rem" }}>
+            Start 30 seconds →
+          </button>
+        : <p className="muted-note">Waiting for <strong>{game?.hostName}</strong> to start...</p>}
     </div>
   );
 
-  if (phase === "describe" && currentRound) return (
+  if (phase === "describe" && currentWord) return (
     <div className="screen" style={{ animation: timer <= 10 && timer > 0 ? "panicPulse 0.6s ease-in-out infinite" : "none" }}>
       <FloatingReactions reactions={floatingReactions} />
-      {/* FIX: countdown only shows for non-describers */}
       {countdown !== null && !isDescriber && <CountdownSplash number={countdown} />}
-      <div className="phase-tag">Describe the word</div>
+      <div className="phase-tag">Describe · {pile.length} word{pile.length !== 1 ? "s" : ""} left</div>
       <TimerRing seconds={timer} total={timerTotal} />
+
       {isDescriber ? (
         <>
-          <div className="word-display word-slam" key={currentRound.word}>{currentRound.word}</div>
-          <p className="muted-note" style={{ marginBottom: "1.5rem" }}>No saying the word, no spelling it out!</p>
-          <button className="btn-primary" onClick={markWordGuessed}>Word guessed!</button>
-          {timer > 0
-            ? <button className="btn-secondary" onClick={skipWord}>Skip this word</button>
-            : <button className="btn-secondary" onClick={skipWord} style={{ borderColor: "var(--color-border-danger, #E24B4A)", color: "#E24B4A" }}>
-                Word was not guessed
-              </button>
-          }
+          <div className="word-display word-slam" key={currentWord.word}>{currentWord.word}</div>
+          <p className="muted-note" style={{ marginBottom: "1.5rem" }}>No saying the word or spelling it out!</p>
+          <button className="btn-primary" onClick={wordGuessed}>Word guessed! →</button>
+          <button className="btn-secondary" onClick={skipWord} style={{ marginTop: 8 }}>
+            Skip (back to pile)
+          </button>
+          {timer === 0 && (
+            <button className="btn-secondary" onClick={timeUp} style={{ marginTop: 8, color: "#E24B4A", borderColor: "#E24B4A" }}>
+              Time's up — end round
+            </button>
+          )}
         </>
-      ) : isOwner ? (
+      ) : currentWord.ownerName === myName ? (
         <>
           <div className="word-display" style={{ filter: "blur(8px)", userSelect: "none" }}>• • • • •</div>
-          <p className="muted-note">Your word is being described — stay neutral!</p>
+          <p className="muted-note">Your word might be coming up — stay neutral!</p>
           <ReactionBar onReact={sendReaction} />
-          {/* Host fallback if describer's phone freezes — appears 8s after timer ends */}
           {timer === 0 && isHost && (
-            <button className="btn-secondary" onClick={skipWord} style={{ marginTop: "1rem" }}>
+            <button className="btn-secondary" onClick={timeUp} style={{ marginTop: "1rem" }}>
               Move on (time's up)
             </button>
           )}
@@ -840,11 +848,10 @@ export default function App() {
       ) : (
         <>
           <div className="word-display" style={{ letterSpacing: "0.3em", color: "var(--muted)" }}>? ? ? ? ?</div>
-          <p className="muted-note"><strong>{currentRound.describerName}</strong> is describing. Shout it out!</p>
+          <p className="muted-note"><strong>{describerName}</strong> is describing. Shout it out!</p>
           <ReactionBar onReact={sendReaction} />
-          {/* Host fallback — appears when timer hits zero */}
           {timer === 0 && isHost && (
-            <button className="btn-secondary" onClick={skipWord} style={{ marginTop: "1rem" }}>
+            <button className="btn-secondary" onClick={timeUp} style={{ marginTop: "1rem" }}>
               Move on (time's up)
             </button>
           )}
@@ -853,46 +860,78 @@ export default function App() {
     </div>
   );
 
-  if (phase === "guess-owner" && currentRound) {
+  // Timer ran out with nothing played at all
+  if (phase === "describe" && !currentWord) return (
+    <div className="screen">
+      <div className="phase-tag">Describe</div>
+      <div className="screen-title">Round over</div>
+      <p className="muted-note" style={{ marginBottom: "1.5rem" }}>No words were played this round.</p>
+      {isHost && <button className="btn-primary" onClick={() => timeUpNoWords()}>Next round</button>}
+      {!isHost && <p className="muted-note">Waiting for <strong>{game?.hostName}</strong>...</p>}
+    </div>
+  );
+
+  if (phase === "reveal-vote" && currentReveal) {
+    const guessablePlayers = playerList.filter(p => p.name !== currentReveal.ownerName);
+    const remainingCount = revealQueue.length;
     return (
       <div className="screen">
-        <div className="phase-tag">Whose word is it?</div>
-        {currentRound.wordGuessed
-          ? <div className="badge-success" style={{ marginBottom: "1rem" }}>Word guessed — now find the owner!</div>
-          : <div className="badge-warning" style={{ marginBottom: "1rem" }}>Word not guessed — but who wrote it?</div>}
-        <div className="word-display">{currentRound.word}</div>
+        <div className="phase-tag">Reveal {remainingCount > 0 ? `· ${remainingCount + 1} left` : ""}</div>
+        <div className="screen-title">Whose word is this?</div>
+        <div className="word-display">{currentReveal.word}</div>
+        {!currentReveal.wordGuessed && (
+          <div className="badge-warning" style={{ marginBottom: "1rem" }}>Word wasn't guessed this round</div>
+        )}
 
         {isOwner ? (
           <>
             <p className="muted-note" style={{ marginBottom: "1rem" }}>Everyone is guessing your word — stay poker-faced!</p>
-            <VoteTally votes={votes} playerList={playerList} ownerName={currentRound.ownerName} eligibleVoters={eligibleVoters} />
+            <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center" }}>
+              {voteCount} of {eligibleVoters.length} voted
+            </div>
           </>
         ) : (
           <>
-            <p style={{ marginBottom: "1rem", color: "var(--muted)" }}>
-              Someone sits out. Who wrote <em>{currentRound.word}</em>?
+            <p style={{ marginBottom: "1.25rem", color: "var(--muted)", fontSize: 15 }}>
+              Tap a name to cast your vote
             </p>
-            <VoteTally votes={votes} playerList={playerList} ownerName={currentRound.ownerName} eligibleVoters={eligibleVoters} />
             {!voteConfirmed ? (
               <>
-                {/* FIX: vote chips now show emoji avatars */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "1.5rem" }}>
-                  {playerList.map(p => (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: "1rem" }}>
+                  {guessablePlayers.map(p => (
                     <button key={p.id}
                       className={`player-chip ${myVote?.id === p.id ? "selected" : ""}`}
-                      onClick={() => setMyVote(p)}>
-                      {p.emoji && <span style={{ marginRight: 4 }}>{p.emoji}</span>}{p.name}
+                      onClick={() => setMyVote(p)}
+                      style={{ fontSize: 15, padding: "10px 18px" }}>
+                      {p.emoji && <span style={{ marginRight: 6, fontSize: 18 }}>{p.emoji}</span>}{p.name}
                     </button>
                   ))}
+                </div>
+                <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: "1rem" }}>
+                  {voteCount} of {eligibleVoters.length} locked in
                 </div>
                 <button className="btn-primary" onClick={confirmMyVote} disabled={!myVote}>
                   Lock in my vote
                 </button>
               </>
             ) : (
-              <div className="badge-success" style={{ marginBottom: "1rem" }}>
-                Your vote is in! Waiting for others...
-              </div>
+              <>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: "1rem" }}>
+                  {guessablePlayers.map(p => (
+                    <div key={p.id} style={{
+                      padding: "10px 18px", borderRadius: 999, fontSize: 15,
+                      background: myVote?.id === p.id ? "var(--text)" : "var(--surface)",
+                      color: myVote?.id === p.id ? "var(--bg)" : "var(--muted)",
+                      border: "0.5px solid var(--border)"
+                    }}>
+                      {p.emoji && <span style={{ marginRight: 6, fontSize: 18 }}>{p.emoji}</span>}{p.name}
+                    </div>
+                  ))}
+                </div>
+                <div className="badge-success" style={{ marginBottom: "1rem" }}>
+                  Your vote is in! {voteCount} of {eligibleVoters.length} locked in
+                </div>
+              </>
             )}
           </>
         )}
@@ -900,37 +939,33 @@ export default function App() {
     );
   }
 
-  if (phase === "reveal" && currentRound) {
+  if (phase === "reveal-show" && currentReveal) {
     const tally = {};
     Object.values(votes).forEach(v => { tally[v.name] = (tally[v.name] || 0) + 1; });
     const sortedTally = Object.entries(tally).sort((a, b) => b[1] - a[1]);
-    const ownerEntry = playerList.find(p => p.name === currentRound.ownerName);
+    const ownerEntry = playerList.find(p => p.name === currentReveal.ownerName);
+    const remainingCount = revealQueue.length;
     return (
       <div className="screen">
         {showFlash && <FlashOverlay />}
-        <div className="phase-tag">Reveal</div>
-        <div className="word-display word-slam" key="reveal-word">{currentRound.word}</div>
+        <div className="phase-tag">Reveal {remainingCount > 0 ? `· ${remainingCount} more after this` : "· last one"}</div>
+        <div className="screen-title">The reveal</div>
 
-        <div className="reveal-card" style={{ paddingTop: "1.5rem", paddingBottom: "1.5rem" }}>
-          <p className="reveal-label" style={{ marginBottom: 16 }}>This word belongs to</p>
-          <SilhouetteReveal
-            name={currentRound.ownerName}
-            emoji={ownerEntry?.emoji}
-            revealed={ownerRevealed}
-          />
+        <div className="reveal-card" style={{ paddingTop: "2rem", paddingBottom: "2rem", marginBottom: "1rem" }}>
+          <SilhouetteReveal name={currentReveal.ownerName} emoji={ownerEntry?.emoji} revealed={ownerRevealed} />
+          <p style={{ textAlign: "center", fontSize: 14, color: "var(--muted)", marginTop: 8 }}>
+            wrote <strong style={{ color: "var(--text)" }}>{currentReveal.word}</strong>
+          </p>
         </div>
 
-        {scorePopName && (
-          <div className="score-pop" style={{
-            textAlign: "center", fontSize: 22, fontWeight: 700,
-            color: "var(--success-text)", marginBottom: "0.75rem"
-          }}>
-            +1 to {scorePopName}!
+        {scorePopNames.length > 0 && (
+          <div className="score-pop" style={{ textAlign: "center", fontSize: 18, fontWeight: 700, color: "var(--success-text)", marginBottom: "0.75rem" }}>
+            +3 to {scorePopNames.join(", ")}!
           </div>
         )}
 
         {ownerRevealed && sortedTally.length > 0 && (
-          <div className="card" style={{ marginBottom: "1rem", animation: "scorePop 0.4s ease-out" }}>
+          <div className="card" style={{ marginBottom: "1rem" }}>
             <label>How everyone voted</label>
             {sortedTally.map(([name, count]) => {
               const entry = playerList.find(p => p.name === name);
@@ -938,8 +973,8 @@ export default function App() {
                 <div key={name} className="player-row">
                   <Avatar name={name} emoji={entry?.emoji} size={28} />
                   <span style={{ flex: 1 }}>{name}</span>
-                  <span style={{ fontSize: 13, color: name === currentRound.ownerName ? "var(--success-text)" : "var(--muted)" }}>
-                    {count} vote{count !== 1 ? "s" : ""}{name === currentRound.ownerName ? " ✓" : ""}
+                  <span style={{ fontSize: 13, color: name === currentReveal.ownerName ? "var(--success-text)" : "var(--muted)" }}>
+                    {count} vote{count !== 1 ? "s" : ""}{name === currentReveal.ownerName ? " ✓" : ""}
                   </span>
                 </div>
               );
@@ -949,44 +984,34 @@ export default function App() {
 
         {ownerRevealed && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: "1.5rem" }}>
-            {currentRound.wordGuessed
-              ? <div className="badge-success">Word guessed correctly</div>
+            {currentReveal.wordGuessed
+              ? <div className="badge-success">Word guessed — +2 to {describerName}, +1 to guessers</div>
               : <div className="badge-neutral">Word not guessed this round</div>}
-            {currentRound.tie
-              ? <div className="badge-warning">It's a tie — no points awarded</div>
-              : currentRound.ownerGuessCorrect
-              ? <div className="badge-success">Most votes correctly identified {currentRound.ownerName}!</div>
-              : <div className="badge-warning">Majority voted {currentRound.ownerGuessName || "—"} — it was {currentRound.ownerName}</div>}
+            {currentReveal.ownerGuessCorrect
+              ? <div className="badge-success">Owner correctly identified! +3 points</div>
+              : <div className="badge-warning">Wrong guess — it was {currentReveal.ownerName}</div>}
           </div>
         )}
 
-        {/* FIX: host buttons only appear after reveal so they can't skip it */}
+        {/* Elaboration — no timer, host clicks next when done */}
+        {ownerRevealed && (
+          <div className="highlight-card neutral" style={{ marginBottom: "1rem" }}>
+            <div className="highlight-label">{currentReveal.ownerName}'s turn to elaborate</div>
+            <p>Tell us the story behind <strong>{currentReveal.word}</strong>!</p>
+          </div>
+        )}
+
         {ownerRevealed && isHost && (
-          <>
-            <button className="btn-primary" onClick={startElaborate}>Start 1-min elaboration</button>
-            <button className="btn-secondary" onClick={nextRound} style={{ marginTop: 8 }}>Skip elaboration</button>
-          </>
+          <button className="btn-primary" onClick={nextReveal}>
+            {remainingCount > 0 ? "Next word →" : "End round →"}
+          </button>
         )}
         {ownerRevealed && !isHost && (
-          <p className="muted-note">Waiting for <strong>{game?.hostName}</strong>...</p>
+          <p className="muted-note">Waiting for <strong>{game?.hostName}</strong> to move on...</p>
         )}
       </div>
     );
   }
-
-  if (phase === "elaborate" && currentRound) return (
-    <div className="screen">
-      <div className="phase-tag">Elaboration</div>
-      <TimerRing seconds={timer} total={timerTotal} />
-      <div className="word-display">{currentRound.word}</div>
-      <p className="muted-note" style={{ marginBottom: "1.5rem" }}>
-        <strong>{currentRound.ownerName}</strong> — tell us the story behind this word!
-      </p>
-      {isHost
-        ? <button className="btn-primary" onClick={nextRound}>Next round</button>
-        : <p className="muted-note">Waiting for <strong>{game?.hostName}</strong> to move on...</p>}
-    </div>
-  );
 
   if (phase === "scoreboard") {
     const sorted = [...playerList].sort((a, b) => (b.score || 0) - (a.score || 0));
