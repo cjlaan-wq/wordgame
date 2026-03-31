@@ -220,15 +220,16 @@ function FlashOverlay() {
 
 // ─── Session ──────────────────────────────────────────────────────────────────
 
-const _saved = loadSession();
+// Clear any stale session on load — reconnect on refresh is removed for simplicity
+clearSession();
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [screen, setScreen] = useState("home");
-  const [gameCode, setGameCode] = useState(_saved.code);
+  const [gameCode, setGameCode] = useState("");
   const [joinCode, setJoinCode] = useState("");
-  const [playerName, setPlayerName] = useState(_saved.name);
+  const [playerName, setPlayerName] = useState("");
   const myId = useRef(getMyId()).current;
   const [game, setGame] = useState(null);
   const [words, setWords] = useState(["", "", ""]);
@@ -277,20 +278,6 @@ export default function App() {
 
   const takenEmojis = new Set(playerList.filter(p => p.id !== myId && p.emoji).map(p => p.emoji));
   const availableEmojis = AVATAR_EMOJIS.filter(e => !takenEmojis.has(e));
-
-  const isReconnecting = !game && !!_saved.code;
-
-  // ── Auto-reconnect ────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!_saved.code || !_saved.name) return;
-    get(ref(db, `games/${_saved.code}`)).then(snap => {
-      if (!snap.exists()) { clearSession(); return; }
-      const data = snap.val();
-      if (!data.players?.[myId]) { clearSession(); return; }
-      setScreen("lobby");
-    }).catch(() => clearSession());
-  }, [myId]);
 
   // ── Firebase listener ─────────────────────────────────────────────────────
 
@@ -716,7 +703,7 @@ export default function App() {
 
   // ── Screens ───────────────────────────────────────────────────────────────
 
-  if (screen === "home" && !isReconnecting) return (
+  if (screen === "home") return (
     <div className="screen">
       <div className="logo">30s words</div>
       <p className="subtitle">The getting-to-know-you game</p>
@@ -1080,7 +1067,7 @@ export default function App() {
   return (
     <div className="screen">
       <div className="logo">30s words</div>
-      <p className="muted-note">{isReconnecting ? "Rejoining your game..." : "Connecting..."}</p>
+      <p className="muted-note">Connecting...</p>
     </div>
   );
 }
