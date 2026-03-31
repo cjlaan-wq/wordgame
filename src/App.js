@@ -18,6 +18,13 @@ function shuffle(arr) {
   return a;
 }
 
+// Firebase converts arrays to objects with numeric keys — this converts them back
+function toArray(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  return Object.keys(val).sort((a, b) => Number(a) - Number(b)).map(k => val[k]);
+}
+
 function getMyId() {
   let id = localStorage.getItem("wordgame_myid");
   if (!id) {
@@ -241,6 +248,7 @@ export default function App() {
   const [scorePopNames, setScorePopNames] = useState([]);
   const countdownRef = useRef(null);
   const revealTriggeredRef = useRef(false);
+  const timeUpFiredRef = useRef(false);
 
   // ── Derived state ─────────────────────────────────────────────────────────
 
@@ -253,12 +261,11 @@ export default function App() {
   const myEmoji = myPlayer?.emoji || "";
 
   // New structure: pile, currentWord, revealQueue, describerName
-  const pile = game?.pile || [];                         // words not yet described
-  const currentWord = game?.currentWord || null;         // word being described now
-  const revealQueue = game?.revealQueue || [];           // words waiting to be revealed
-  const currentReveal = game?.currentReveal || null;     // word currently being revealed
+  const pile = toArray(game?.pile);
+  const currentWord = game?.currentWord || null;
+  const revealQueue = toArray(game?.revealQueue);
+  const currentReveal = game?.currentReveal || null;
   const describerName = game?.describerName || "";
-  const roundWordsGuessed = game?.roundWordsGuessed || 0; // count of guessed words this turn
 
   const isDescriber = describerName === myName;
   const isOwner = currentReveal?.ownerName === myName;
@@ -270,6 +277,8 @@ export default function App() {
 
   const takenEmojis = new Set(playerList.filter(p => p.id !== myId && p.emoji).map(p => p.emoji));
   const availableEmojis = AVATAR_EMOJIS.filter(e => !takenEmojis.has(e));
+
+  const isReconnecting = !game && !!_saved.code;
 
   // ── Auto-reconnect ────────────────────────────────────────────────────────
 
@@ -348,6 +357,7 @@ export default function App() {
   useEffect(() => {
     if (phase !== "describe") {
       if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; setCountdown(null); }
+      timeUpFiredRef.current = false;
       return;
     }
     if (isDescriber || countdownRef.current) return;
@@ -370,12 +380,15 @@ export default function App() {
     setTimeout(() => setOwnerRevealed(true), 800);
   }, [phase, currentReveal?.word]);
 
-  // Set score pop names after reveal
   useEffect(() => {
     if (!ownerRevealed || !currentReveal) return;
-    const names = [];
-    if (currentReveal.ownerGuessCorrect && currentReveal.ownerGuessName) names.push(currentReveal.ownerGuessName);
-    setScorePopNames(names);
+    const correctVoterNames = Object.values(currentReveal.votes || {})
+      .filter(v => v.name === currentReveal.ownerName)
+      .map(v => {
+        const p = playerList.find(pl => pl.id === v.voterId);
+        return p?.name || v.name;
+      });
+    setScorePopNames(correctVoterNames);
   }, [ownerRevealed, currentReveal]);
 
   // ── Confetti ──────────────────────────────────────────────────────────────
@@ -453,7 +466,7 @@ export default function App() {
       hostId: myId, hostName: playerName.trim(), status: "lobby",
       players: { [myId]: { name: playerName.trim(), emoji: "", ready: false, score: 0 } },
       pile: null, currentWord: null, revealQueue: null, currentReveal: null,
-      describerName: "", describerIdx: 0, roundWordsGuessed: 0,
+      describerName: "", describerIdx: 0,
       phase: "lobby", timerStart: null, timerDuration: null
     });
     setGameCode(code);
@@ -520,7 +533,6 @@ export default function App() {
       currentReveal: null,
       describerName: firstDescriber,
       describerIdx: 0,
-      roundWordsGuessed: 0,
       status: "playing",
       phase: "pregame",
       timerStart: null, timerDuration: null
@@ -536,62 +548,51 @@ export default function App() {
   // Word guessed — add to reveal queue, pull next word from pile
   async function wordGuessed() {
     const newRevealQueue = [...revealQueue, { ...currentWord, wordGuessed: true, votes: {} }];
-    const newGuessedCount = roundWordsGuessed + 1;
 
     if (pile.length === 0) {
       // No more words — end describing, go straight to reveals
       await update(ref(db, `games/${gameCode}`), {
-        revealQueue: newRevealQueue,
         currentWord: null,
-        roundWordsGuessed: newGuessedCount,
         phase: "reveal-vote",
         currentReveal: newRevealQueue[0],
         revealQueue: newRevealQueue.slice(1),
         timerStart: null, timerDuration: null
       });
     } else {
-      // Check if next word's owner is same as describer — skip if so
+      // Find next word not owned by the describer
       let nextPile = [...pile];
       let nextWord = nextPile.shift();
-      // If next word is owned by the describer, skip it back to end of pile
       while (nextWord && nextWord.ownerName === describerName && nextPile.length > 0) {
         nextPile.push(nextWord);
         nextWord = nextPile.shift();
+      }
+      // If every remaining word is owned by the describer, end the round
+      if (nextWord && nextWord.ownerName === describerName) {
+        await update(ref(db, `games/${gameCode}`), {
+          pile: nextPile,
+          revealQueue: newRevealQueue.slice(1),
+          currentReveal: newRevealQueue[0],
+          currentWord: null,
+          phase: "reveal-vote",
+          timerStart: null, timerDuration: null
+        });
+        return;
       }
       await update(ref(db, `games/${gameCode}`), {
         revealQueue: newRevealQueue,
         currentWord: nextWord,
         pile: nextPile,
-        roundWordsGuessed: newGuessedCount,
-        phase: "describe" // stay in describe, timer keeps running
+        phase: "describe"
       });
     }
   }
 
-  // Skip — put word back at bottom of pile, pull next
-  async function skipWord() {
-    const newPile = [...pile, currentWord];
-    let nextPile = [...newPile];
-    let nextWord = nextPile.shift();
-
-    await update(ref(db, `games/${gameCode}`), {
-      pile: nextPile,
-      currentWord: nextWord,
-      phase: "describe"
-    });
-  }
-
-  // Timer ended or describer clicks "time's up" — current word not guessed, add to queue
   async function timeUp() {
+    if (timeUpFiredRef.current) return;
+    timeUpFiredRef.current = true;
+    // Current word was not guessed — add to reveal queue
     const notGuessedWord = { ...currentWord, wordGuessed: false, votes: {} };
     const newRevealQueue = [...revealQueue, notGuessedWord];
-
-    if (newRevealQueue.length === 0) {
-      // Nothing played this round — back to pregame with new describer
-      await advanceDescriber([]);
-      return;
-    }
-
     await update(ref(db, `games/${gameCode}`), {
       revealQueue: newRevealQueue.slice(1),
       currentReveal: newRevealQueue[0],
@@ -601,13 +602,43 @@ export default function App() {
     });
   }
 
-  // Only time ran out with no words played at all
   async function timeUpNoWords() {
     if (pile.length === 0) {
       await update(ref(db, `games/${gameCode}`), { phase: "scoreboard", status: "done" });
       return;
     }
     await advanceDescriber(pile);
+  }
+
+  async function skipWord() {
+    // Put current word back at bottom of pile
+    const newPile = [...pile, currentWord];
+    // Find next word that isn't owned by the describer
+    // If ALL remaining words are owned by describer, just end the round
+    const nonOwnedIdx = newPile.findIndex(w => w.ownerName !== describerName);
+    if (nonOwnedIdx === -1) {
+      // No suitable next word — end describing turn
+      if (revealQueue.length === 0) {
+        await timeUpNoWords();
+      } else {
+        await update(ref(db, `games/${gameCode}`), {
+          pile: newPile,
+          currentWord: null,
+          revealQueue: revealQueue.slice(1),
+          currentReveal: revealQueue[0],
+          phase: "reveal-vote",
+          timerStart: null, timerDuration: null
+        });
+      }
+      return;
+    }
+    // Rotate pile so non-owned word is first
+    const reordered = [...newPile.slice(nonOwnedIdx), ...newPile.slice(0, nonOwnedIdx)];
+    await update(ref(db, `games/${gameCode}`), {
+      pile: reordered.slice(1),
+      currentWord: reordered[0],
+      phase: "describe"
+    });
   }
 
   async function confirmMyVote() {
@@ -657,7 +688,6 @@ export default function App() {
       currentReveal: null,
       describerName: names[nextIdx],
       describerIdx: nextIdx,
-      roundWordsGuessed: 0,
       phase: "pregame",
       timerStart: null, timerDuration: null
     });
@@ -686,7 +716,7 @@ export default function App() {
 
   // ── Screens ───────────────────────────────────────────────────────────────
 
-  if (screen === "home") return (
+  if (screen === "home" && !isReconnecting) return (
     <div className="screen">
       <div className="logo">30s words</div>
       <p className="subtitle">The getting-to-know-you game</p>
@@ -987,7 +1017,11 @@ export default function App() {
             {currentReveal.wordGuessed
               ? <div className="badge-success">Word guessed — +2 to {describerName}, +1 to guessers</div>
               : <div className="badge-neutral">Word not guessed this round</div>}
-            {currentReveal.ownerGuessCorrect
+            {currentReveal.tie
+              ? currentReveal.ownerGuessCorrect
+                ? <div className="badge-success">It's a tie — +3 to everyone who got it right!</div>
+                : <div className="badge-warning">It's a tie — nobody identified {currentReveal.ownerName}</div>
+              : currentReveal.ownerGuessCorrect
               ? <div className="badge-success">Owner correctly identified! +3 points</div>
               : <div className="badge-warning">Wrong guess — it was {currentReveal.ownerName}</div>}
           </div>
@@ -1046,7 +1080,7 @@ export default function App() {
   return (
     <div className="screen">
       <div className="logo">30s words</div>
-      <p className="muted-note">Connecting...</p>
+      <p className="muted-note">{isReconnecting ? "Rejoining your game..." : "Connecting..."}</p>
     </div>
   );
 }
