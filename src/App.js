@@ -397,19 +397,10 @@ export default function App() {
     if (revealTriggeredRef.current) return;
     revealTriggeredRef.current = true;
 
-    const tally = {};
-    Object.values(votes).forEach(v => { tally[v.name] = (tally[v.name] || 0) + 1; });
-    const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]);
-    const topCount = sorted[0]?.[1] ?? 0;
-    const isTie = sorted.length > 1 && sorted[1][1] === topCount;
-    const topName = sorted[0]?.[0];
-
     const correctVoters = Object.values(votes).filter(v => v.name === currentReveal.ownerName);
 
     const updates = {};
     updates[`games/${gameCode}/currentReveal/ownerGuessCorrect`] = correctVoters.length > 0;
-    updates[`games/${gameCode}/currentReveal/ownerGuessName`] = isTie ? null : topName;
-    updates[`games/${gameCode}/currentReveal/tie`] = isTie;
     updates[`games/${gameCode}/phase`] = "reveal-show";
     update(ref(db), updates);
 
@@ -538,11 +529,15 @@ export default function App() {
   async function wordGuessed() {
     const newRevealQueue = [...revealQueue, { ...currentWord, wordGuessed: true, votes: {} }];
 
-    // Filter pile so describer never sees their own words
+    // Filter pile so describer never sees their own words this turn
     const availablePile = filterPileForDescriber(pile, describerName);
+    // Words owned by the describer stay in the pile for future rounds
+    const ownedByDescriber = pile.filter(w => w.ownerName === describerName);
 
     if (availablePile.length === 0) {
+      // No more words to describe this turn — end round, keep describer's own words in pile
       await update(ref(db, `games/${gameCode}`), {
+        pile: ownedByDescriber.length > 0 ? ownedByDescriber : null,
         currentWord: null,
         phase: "reveal-vote",
         currentReveal: newRevealQueue[0],
@@ -600,8 +595,17 @@ export default function App() {
         phase: "reveal-vote"
       });
     } else {
-      await advanceDescriber(pile);
+      // All reveals done — show round scoreboard before next describer
+      if (pile.length === 0) {
+        await update(ref(db, `games/${gameCode}`), { phase: "scoreboard", status: "done", currentReveal: null });
+      } else {
+        await update(ref(db, `games/${gameCode}`), { phase: "round-scores", currentReveal: null });
+      }
     }
+  }
+
+  async function continueToNextRound() {
+    await advanceDescriber(pile);
   }
 
   async function advanceDescriber(remainingPile) {
@@ -609,16 +613,11 @@ export default function App() {
       await update(ref(db, `games/${gameCode}`), { phase: "scoreboard", status: "done", currentReveal: null });
       return;
     }
-
-    // Pick next describer — rotate through player names
     const names = playerList.map(p => p.name);
     const currentDescriberIdx = game?.describerIdx || 0;
     let nextIdx = (currentDescriberIdx + 1) % names.length;
     const nextDescriber = names[nextIdx];
-
-    // Push next describer's own words to the bottom of the pile
     const reorderedPile = filterPileForDescriber(remainingPile, nextDescriber);
-
     await update(ref(db, `games/${gameCode}`), {
       pile: reorderedPile.slice(1),
       currentWord: reorderedPile[0],
@@ -874,6 +873,9 @@ export default function App() {
     Object.values(votes).forEach(v => { tally[v.name] = (tally[v.name] || 0) + 1; });
     const sortedTally = Object.entries(tally).sort((a, b) => b[1] - a[1]);
     const ownerEntry = playerList.find(p => p.name === currentReveal.ownerName);
+    const correctVoterNames = Object.values(votes)
+      .filter(v => v.name === currentReveal.ownerName)
+      .map(v => playerList.find(p => p.id === v.voterId)?.name || v.name);
     const remainingCount = revealQueue.length;
     return (
       <div className="screen">
@@ -899,12 +901,13 @@ export default function App() {
             <label>How everyone voted</label>
             {sortedTally.map(([name, count]) => {
               const entry = playerList.find(p => p.name === name);
+              const isCorrect = name === currentReveal.ownerName;
               return (
                 <div key={name} className="player-row">
                   <Avatar name={name} emoji={entry?.emoji} size={28} />
                   <span style={{ flex: 1 }}>{name}</span>
-                  <span style={{ fontSize: 13, color: name === currentReveal.ownerName ? "var(--success-text)" : "var(--muted)" }}>
-                    {count} vote{count !== 1 ? "s" : ""}{name === currentReveal.ownerName ? " ✓" : ""}
+                  <span style={{ fontSize: 13, color: isCorrect ? "var(--success-text)" : "var(--muted)" }}>
+                    {count} vote{count !== 1 ? "s" : ""}{isCorrect ? " ✓ +3" : ""}
                   </span>
                 </div>
               );
@@ -914,16 +917,13 @@ export default function App() {
 
         {ownerRevealed && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: "1.5rem" }}>
+            <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 2 }}>Points this word</p>
             {currentReveal.wordGuessed
-              ? <div className="badge-success">Word guessed — +2 to {describerName}, +1 to guessers</div>
-              : <div className="badge-neutral">Word not guessed this round</div>}
-            {currentReveal.tie
-              ? currentReveal.ownerGuessCorrect
-                ? <div className="badge-success">It's a tie — +3 to everyone who got it right!</div>
-                : <div className="badge-warning">It's a tie — nobody identified {currentReveal.ownerName}</div>
-              : currentReveal.ownerGuessCorrect
-              ? <div className="badge-success">Owner correctly identified! +3 points</div>
-              : <div className="badge-warning">Wrong guess — it was {currentReveal.ownerName}</div>}
+              ? <div className="badge-success">Word guessed — +2 to {describerName}, +1 to everyone else</div>
+              : <div className="badge-neutral">Word not guessed — no points for describing</div>}
+            {correctVoterNames.length > 0
+              ? <div className="badge-success">Correct ownership vote — +3 to {correctVoterNames.join(", ")}</div>
+              : <div className="badge-warning">Nobody identified {currentReveal.ownerName} — no ownership points</div>}
           </div>
         )}
 
@@ -943,6 +943,32 @@ export default function App() {
         {ownerRevealed && !isOwner && (
           <p className="muted-note">Waiting for <strong>{currentReveal.ownerName}</strong> to move on...</p>
         )}
+      </div>
+    );
+  }
+
+  if (phase === "round-scores") {
+    const sorted = [...playerList].sort((a, b) => (b.score || 0) - (a.score || 0));
+    return (
+      <div className="screen">
+        <div className="phase-tag">End of round</div>
+        <div className="screen-title">Scores so far</div>
+        <div className="card" style={{ marginBottom: "1.5rem" }}>
+          {sorted.map((p, i) => (
+            <div key={p.id} className="score-row">
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span className="rank">{i + 1}</span>
+                <Avatar name={p.name} emoji={p.emoji} />
+                <span>{p.name}</span>
+                {i === 0 && <span className="badge-success">leading</span>}
+              </div>
+              <span className="score-num">{p.score || 0} pt{p.score !== 1 ? "s" : ""}</span>
+            </div>
+          ))}
+        </div>
+        {isHost
+          ? <button className="btn-primary" onClick={continueToNextRound}>Next round →</button>
+          : <p className="muted-note">Waiting for <strong>{game?.hostName}</strong> to continue...</p>}
       </div>
     );
   }
