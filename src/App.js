@@ -98,9 +98,6 @@ function SilhouetteReveal({ name, emoji, revealed }) {
   const idx = name ? name.charCodeAt(0) % colors.length : 0;
   return (
     <div style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-      <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12, fontWeight: 500, letterSpacing: "0.05em" }}>
-        {revealed ? name : "Who's this player?!"}
-      </div>
       <div style={{ position: "relative", width: 90, height: 90, margin: "0 auto 0.75rem" }}>
         <div style={{
           position: "absolute", inset: 0, borderRadius: "50%",
@@ -827,7 +824,7 @@ export default function App() {
   );
 
   if (phase === "reveal-vote" && currentReveal) {
-    const guessablePlayers = playerList.filter(p => p.name !== currentReveal.ownerName);
+    const guessablePlayers = playerList;
     const remainingCount = revealQueue.length;
     return (
       <div className="screen">
